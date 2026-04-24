@@ -1,14 +1,12 @@
 # Pure Functions and Immutability
 
-Pure functions and immutable data are two of the most useful functional programming ideas you can bring into everyday TypeScript. They do not require a new runtime, a framework, or an external library. They require one design habit: make data flow visible.
+Bugs come from code that changes data while also making a decision. Pure functions and immutable data pull those two concerns apart.
 
-A pure function returns the same output for the same input and does not change anything outside itself. Immutable data means a value stays fixed after creation. This style gives humans and AI less hidden context to guess about.
+A pure function returns the same output for the same input and does not change anything outside itself. Immutable data means a value stays fixed after creation. Both are ordinary TypeScript — no new runtime, no framework, no external library. The design habit is simple: make data flow visible, so humans and AI have less hidden context to guess about.
 
 ## The Problem
 
-Bugs come from code that changes data while also making a decision.
-
-Consider common application workflows:
+Mutation and decision-making get tangled in ordinary code. Consider common application workflows:
 
 - A cart total recalculates after items, discounts, tax, and shipping are updated.
 - A profile update validates input and mutates the existing user object.
@@ -78,7 +76,7 @@ class ShoppingCart {
 }
 ```
 
-This design is familiar. It keeps cart behavior near cart state, and for a small example it is easy to follow.
+This design keeps cart behavior near cart state. It is the default shape taught in object-oriented tutorials.
 
 The problems appear as the workflow grows:
 
@@ -177,6 +175,8 @@ Each function now has a clearer contract:
 - `readonly` fields and `ReadonlyArray` signal that callers should not mutate the value.
 - Existing cart values stay available for comparison and testing.
 
+`addItem` trusts its input shape. That is fine when callers are internal; at a system boundary you would validate the item and return a `Result` the same way `applyDiscount` does.
+
 The calling code becomes explicit about each step:
 
 ```ts
@@ -197,7 +197,7 @@ if (!discounted.ok) {
 
 No hidden object changed during this flow. The original `cart` still represents the cart before the discount. The discounted cart is a separate value.
 
-## Why This Helps AI
+## Why Pure Functions Help AI Edit Safely
 
 Pure functions and immutable data help AI because they turn implicit behavior into local, checkable structure.
 
@@ -216,7 +216,7 @@ Immutability is a guardrail, not a guarantee. TypeScript's `readonly` is a compi
 Pure functions and immutable data are not free:
 
 - Returning new objects allocates more than mutating in place.
-- Deeply nested updates become noisy without careful data modeling.
+- Deeply nested updates become noisy unless the data model stays flat. A `ReadonlyMap<string, CartItem>` keyed by SKU collapses the two-pass merge in `addItem` to a single lookup, at the cost of a different iteration story.
 - Teams used to stateful objects may find the style unfamiliar at first.
 - `readonly` in TypeScript does not provide deep runtime immutability.
 - Some domains are stateful by nature: UI widgets, streams, database transactions, and long-lived connections.
@@ -229,7 +229,7 @@ In performance-sensitive paths, measure before assuming immutable updates cost t
 
 ## Takeaways
 
-Pure functions are easy to call, test, review, and move. Immutable data prevents one part of the code from surprising another part by changing a shared value.
+Pure functions stay testable without fixtures and movable without tracing callers. Immutable data prevents one part of the code from surprising another part by changing a shared value.
 
 For AI, these benefits compound:
 

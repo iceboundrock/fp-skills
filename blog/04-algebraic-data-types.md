@@ -143,7 +143,7 @@ Three compounding effects.
 
 **Nested ADTs keep data in scope.** `OrderError` inside `failure` hands AI the error fields at the moment a handler runs. No `if (error instanceof NotFoundError)` with a cast. No `error.code === "FORBIDDEN"` string compare.
 
-The compiler reads the grammar. AI fills in the words. The reviewer checks that the grammar is the right one, not that every branch was handled.
+The compiler reads the grammar. AI fills in the words. The reviewer checks that the grammar fits the domain, not that the code handles every branch.
 
 ## Trade-offs
 
