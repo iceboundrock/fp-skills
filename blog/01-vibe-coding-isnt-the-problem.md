@@ -8,7 +8,7 @@ Better prompts will not fix it, but a design that makes guessing expensive will.
 
 ## Where vibe coding breaks
 
-AI coding assistants generate code by matching the patterns they can see. If a class holds mutable state and mixes validation, persistence, and logging in one method, the assistant writes the next change in the same shape. The output compiles. The output passes local tests. The design intent — the rule that says "validate before you mutate" or "never log a password" — lives in a code review comment from six months ago that the assistant cannot read.
+AI generate code by matching the patterns they can see. If a class holds mutable state and mixes validation, persistence, and logging in one method, the AI writes the next change in the same shape. The output compiles. The output passes local tests. The design intent — the rule that says "validate before you mutate" or "never log a password" — lives in a code review comment from six months ago that the AI cannot read.
 
 Three gaps do most of the damage:
 
@@ -18,7 +18,7 @@ Three gaps do most of the damage:
 
 **Loose data shapes.** An interface accepts four optional fields that only make sense in two of the sixteen combinations. The compiler accepts the other fourteen.
 
-A senior engineer works around these gaps through habit and memory. An AI assistant has neither. It reads the types, the names, and the nearest examples, and it fills in the rest.
+A senior engineer works around these gaps through habit and memory. An AI has neither. It reads the types, the names, and the nearest examples, and it fills in the rest.
 
 ## The OOP version looks fine
 
@@ -63,13 +63,13 @@ class RegistrationService {
 
 ![Diagram showing a single service class as an opaque box absorbing five separate arrows for validation, ID generation, time, persistence, and logging, with all outputs merged into one ambiguous return path](./img/blog-01-image-01.webp)
 
-Reviewers accept this code. Tests pass. The design still has three gaps an AI assistant can exploit:
+Reviewers accept this code. Tests pass. The design still has three gaps an AI can exploit:
 
 - The return type promises a `User`. It does not warn callers about `throw`.
 - Validation, ID generation, time, persistence, and logging sit in one method. An edit to any of them risks the others.
 - The error cases live in string messages. A caller that wants to treat "invalid email" as a distinct failure from "missing display name" has to parse the message or catch and re-throw.
 
-Ask an assistant to add a uniqueness check on email. It will add a database query somewhere inside `register`. It will throw a new `Error`. The new failure mode joins the existing undocumented ones.
+Ask an AI to add a uniqueness check on email. It will add a database query somewhere inside `register`. It will throw a new `Error`. The new failure mode joins the existing undocumented ones.
 
 ## The same workflow as a typed pipeline
 
@@ -159,11 +159,11 @@ This is still plain TypeScript. No library, no monads, no functional programming
 
 The value of the rewrite shows up on the next change.
 
-**Add a new validation rule.** The assistant extends `RegistrationError` with a new `kind`. Every `switch` on the error becomes a compile error until a developer handles the new case. The rule cannot sneak through one code path.
+**Add a new validation rule.** The AI extends `RegistrationError` with a new `kind`. Every `switch` on the error becomes a compile error until a developer handles the new case. The rule cannot sneak through one code path.
 
-**Add a new caller.** The caller receives a `Result`. Using `.value` without checking `ok` is a type error. The assistant cannot forget the failure branch.
+**Add a new caller.** The caller receives a `Result`. Using `.value` without checking `ok` is a type error. The AI cannot forget the failure branch.
 
-**Add a new side effect.** A feature needs to send a welcome email. The assistant adds `sendEmail` to `RegistrationDeps`. The production wiring, the test fakes, and the reviewer see a new dependency in the signature. The effect cannot hide inside a helper that looks like a calculation.
+**Add a new side effect.** A feature needs to send a welcome email. The AI adds `sendEmail` to `RegistrationDeps`. The production wiring, the test fakes, and the reviewer see a new dependency in the signature. The effect cannot hide inside a helper that looks like a calculation.
 
 Each of these is a mistake the OOP version welcomed. The typed pipeline rejects each at compile time.
 
@@ -185,7 +185,7 @@ Everything else earns the structure back within weeks. The cost shows up once, a
 4. Model alternatives as discriminated unions. Let the compiler force exhaustive handling.
 5. Keep pure transformation and side effects in separate functions.
 
-These rules do not turn TypeScript into Haskell. They narrow the surface where an AI assistant can guess wrong.
+These rules do not turn TypeScript into Haskell. They narrow the surface where an AI can guess wrong.
 
 ## Try it on one function
 
