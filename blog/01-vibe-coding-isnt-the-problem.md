@@ -1,10 +1,10 @@
 # Vibe Coding Isn't the Problem — Your Types Are
 
-Vibe coding broke production again last week. The AI added a new email validation rule to a user registration service. The reviewer approved it. The tests passed. The code shipped. Seven days later, a customer registered with a malformed address through a second code path the AI missed.
+Vibe coding broke production again last week. An AI coding assistant added a new email validation rule to a user registration service. The review approved it. The tests passed. The code shipped. Seven days later, a customer registered with a malformed address through a second code path the assistant missed.
 
-I have written TypeScript for ten years. I have watched this same failure repeat across three companies. Vibe coding — the practice of steering an AI through natural language and hoping the output fits — produces this same failure across teams and stacks. The vibe coding is not the problem. The code gave it room to guess.
+I have written TypeScript for ten years. I have watched this same failure repeat across three companies. Vibe coding — the practice of steering an AI assistant through natural language and hoping the output fits — produces this same failure across teams and stacks. The assistant is not the problem. The code gave it room to guess.
 
-Better prompts will not fix it, but a design that makes guessing expensive will.
+Better prompts will not fix this. A design that makes guessing expensive will.
 
 ## Where vibe coding breaks
 
@@ -61,7 +61,7 @@ class RegistrationService {
 }
 ```
 
-![Diagram showing a single service class as an opaque box absorbing five separate arrows for validation, ID generation, time, persistence, and logging, with all outputs merged into one ambiguous return path](./img/blog-01-image-01.webp)
+![Diagram showing a single service class as an opaque box absorbing five separate arrows for validation, ID generation, time, persistence, and logging, with all outputs merged into one ambiguous return path](image-placeholder)
 
 Reviewers accept this code. Tests pass. The design still has three gaps an AI assistant can exploit:
 
@@ -147,7 +147,7 @@ const registerUser = async (
 };
 ```
 
-![Diagram showing the same five operations as separate labeled pipes arranged in sequence, with a branching Result output that splits into success and error paths](./img/blog-01-image-02.webp)
+![Diagram showing the same five operations as separate labeled pipes arranged in sequence, with a branching Result output that splits into success and error paths](image-placeholder)
 
 This is still plain TypeScript. No library, no monads, no functional programming jargon on the surface. Three changes carry the weight:
 
@@ -195,4 +195,4 @@ Pick a method in your codebase that validates input and then performs a side eff
 2. Move time, IDs, persistence, and network calls into a dependency record passed to the caller.
 3. Change the top-level function to return `Result`. Fix the call sites the compiler flags.
 
-Then ask your AI to add one new validation rule or one new failure mode. Count the places the compiler forces a decision. That number is the margin between shipping a gap and catching one.
+Then ask your AI assistant to add one new validation rule or one new failure mode. Count the places the compiler forces a decision. That number is the margin between shipping a gap and catching one.
