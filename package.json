@@ -1,0 +1,20 @@
+{
+  "name": "fp-design-patterns",
+  "version": "1.0.0",
+  "description": "Sample code of design patterns with functional programming style",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "npx tsc && node dist/index.js",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "fp",
+    "design-patterns"
+  ],
+  "author": "Ruoshi Li",
+  "license": "ISC",
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  }
+}

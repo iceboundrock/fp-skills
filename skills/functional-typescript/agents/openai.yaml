@@ -1,0 +1,7 @@
+interface:
+  display_name: "Functional TypeScript"
+  short_description: "Prefer functional TypeScript code"
+  default_prompt: "Use $functional-typescript when generating or refactoring TypeScript code."
+
+policy:
+  allow_implicit_invocation: true
