@@ -7,6 +7,7 @@ The goal is not to replace object-oriented programming. The goal is to add a sma
 ## Blog Series
 
 1. [Why AI-assisted coding needs FP](blog/01-why-ai-assisted-coding-needs-fp.md)
+2. [Pure functions and immutability](blog/02-pure-functions-and-immutability.md)
 
 ## Supporting Docs
 
