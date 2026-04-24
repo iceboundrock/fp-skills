@@ -1,4 +1,4 @@
-# TypeScript Types as AI Guardrails: Narrow the Surface an AI Can Get Wrong
+# Types as AI Guardrails: Narrow the Surface an AI Can Get Wrong
 
 An AI agent rewrote a shipping handler last month. The diff compiled. The unit tests passed. The production order it created had `isShipped: true`, `isPaid: false`, and `paidAt: null`. The type said `Order`. The type lied.
 
