@@ -40,4 +40,5 @@ next-env.d.ts
 dist/
 
 # editor
-.vscode
+.vscode/
+.claude/
