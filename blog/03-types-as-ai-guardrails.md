@@ -217,11 +217,32 @@ const markShipped = (
 
 `markShipped` cannot accept a `Draft`. The type system rejects the call.
 
+Read paths use exhaustive matching on the discriminant:
+
+```typescript
+const summarizeOrder = (order: Order): string => {
+  switch (order.status) {
+    case "draft":
+      return `Draft with ${order.items.length} items`;
+    case "submitted":
+      return `Submitted on ${order.submittedAt.toISOString()}`;
+    case "paid":
+      return `Paid on ${order.paidAt.toISOString()}`;
+    case "shipped":
+      return `Shipped via ${order.trackingNumber}`;
+    case "cancelled":
+      return `Cancelled: ${order.reason}`;
+  }
+};
+```
+
+The explicit `: string` return type is the trigger. Drop a case and TypeScript reports "not all code paths return a value." Inside each branch, the discriminant narrows the type — `order.trackingNumber` is reachable in the `shipped` case and absent everywhere else.
+
 ## Why This Helps AI
 
 Three compounding effects.
 
-**Exhaustive matching forces AI to see every state.** A `switch` on `order.status` with no default must handle all five variants. Add a `Refunded` variant and every switch becomes a compile error until AI extends it. The new state cannot slip through one code path.
+**Exhaustive matching forces AI to see every state.** The `summarizeOrder` switch above must handle all five variants to satisfy its return type. Add a `Refunded` variant to `Order` and every switch like this becomes a compile error until AI extends it. The new state cannot slip through one code path.
 
 **Branded IDs close an entire class of silent bugs.** AI fills function arguments by matching types. When `UserId` and `OrderId` are distinct types, AI cannot pass them in the wrong order. A human reviewer no longer needs to mentally check argument positions.
 
@@ -237,7 +258,7 @@ These techniques cost something.
 - Branded IDs need small constructors at every boundary where raw strings enter the system. The constructor is one line per type.
 - Parse-at-boundary adds one function per external input. Schema libraries reduce the cost, but the pattern works with plain TypeScript.
 - `readonly` and branded types are compile-time only. A runtime cast bypasses them. Treat the types as guardrails against honest mistakes, not attackers.
-- Converting a legacy codebase is not a weekend job. Start with one aggregate, one boundary, or one pair of IDs that reviewers keep catching swapped.
+- Exhaustive `switch` statements need an explicit return type or a trailing `assertNever(x: never)` call. Without one, TypeScript accepts a missing case and falls through.
 
 Use the techniques where invalid states cause production incidents. Skip them in throwaway scripts and single-call glue code.
 

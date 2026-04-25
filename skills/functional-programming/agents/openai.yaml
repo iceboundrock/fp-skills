@@ -1,0 +1,7 @@
+interface:
+  display_name: "Functional Style Programming"
+  short_description: "Prefer functional code in any language"
+  default_prompt: "Use functional-style programming when generating or refactoring code, in whatever language the task uses."
+
+policy:
+  allow_implicit_invocation: true

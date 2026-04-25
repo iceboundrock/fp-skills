@@ -110,28 +110,26 @@ const render = (state: RemoteData<Order, OrderError>): string => {
 
 Add a `stale` variant to `RemoteData`. Every `switch` without a `stale` case becomes a compile error, because `state` is no longer `never` in the `default` branch. The compiler lists every place the new case must land.
 
-**Move 4: A small `match` helper, plain TypeScript.**
+**Move 4: A curried `matcher`, plain TypeScript.**
 
 ```typescript
-type Cases<S extends { kind: string }, R> = {
-  [K in S["kind"]]: (state: Extract<S, { kind: K }>) => R;
-};
+const matcher =
+  <S extends { kind: string }>() =>
+  <R>(cases: { [K in S["kind"]]: (state: Extract<S, { kind: K }>) => R }) =>
+  (state: S): R =>
+    (cases[state.kind as S["kind"]] as (s: S) => R)(state);
 
-const match = <S extends { kind: string }, R>(
-  state: S,
-  cases: Cases<S, R>,
-): R => cases[state.kind as S["kind"]](state as Extract<S, { kind: S["kind"] }>);
+const label = matcher<RemoteData<Order, OrderError>>()({
+  idle: () => "Click to load.",
+  loading: () => "Loading…",
+  success: ({ value }) => `Order ${value.id}`,
+  failure: ({ error }) => renderError(error),
+});
 
-const label = (state: RemoteData<Order, OrderError>): string =>
-  match(state, {
-    idle: () => "Click to load.",
-    loading: () => "Loading…",
-    success: ({ value }) => `Order ${value.id}`,
-    failure: ({ error }) => renderError(error),
-  });
+label(state); // call sites carry no type annotation
 ```
 
-Omit a case and the object literal fails to type-check. No `default` branch, no `assertNever` call. One place to add the handler when a new variant appears.
+Bind the ADT once with `matcher<RemoteData<Order, OrderError>>()`. The returned function takes a case map and returns a `(state) => R`. Omit a case and the object literal fails to type-check. The case map is a value — pass it around, compose it, reuse it. One place to add the handler when a new variant appears.
 
 ## Why This Helps AI
 
@@ -149,11 +147,11 @@ The compiler reads the grammar. AI fills in the words. The reviewer checks that 
 
 These patterns cost something.
 
-- Tagged variants add a `kind` field per case. Runtime cost is a short string per value.
 - TypeScript has no pattern-matching syntax. A `switch` with `assertNever`, or a `match` helper, is the tool. Neither is as terse as Rust or Haskell.
 - External APIs return flat shapes. Convert at the boundary, as post 03 covers, then keep the ADT internal.
+- Schemas double at the boundary. Zod or io-ts validators need a `discriminatedUnion` per ADT — one schema per variant, plus the union. A flat record needs one schema.
 - Not every `boolean` is an ADT. A single on/off toggle is a boolean. Two flags that describe one concept are an ADT.
-- Deep ADT nesting past three levels reads worse than a flat record with a parse step. Stop when the tree stops helping.
+- ADT nesting past three levels stops paying. A flat record with a parse step at the boundary holds its shape better than a tree of variants of variants.
 
 Use ADTs where branching logic causes incidents. Skip them in a feature flag or a config struct.
 
