@@ -52,13 +52,9 @@ bash evals/functional-programming/build-prompts.sh none <out-dir>
 - Inspect existing patterns before editing. Copy the neighbouring style.
 - Prefer minimal diffs. Do not refactor unrelated code.
 - Do not add dependencies unless the task requires them.
-- Keep the ownership boundaries in the map below explicit. Do not move logic across them to save a file.
-- Run the relevant tests after modifying code; each scope's `AGENTS.md` names what to run. `./verify.sh` runs everything CI runs.
-
-
-
+- Keep the boundaries between the parts listed under "What this repo is" explicit. For example, per-language idioms stay in `references/`, and rubrics stay in the eval scenarios, not in `SKILL.md`. Do not move content across them to save a file.
+- After modifying code, run the matching check from "Commands": `npx tsc --noEmit` for `src/`, and a prompt build for `build-prompts.sh`. There is no CI. Skill edits follow the eval workflow above.
 
 ## Blog
 
 If you are writing/reviewing a tech blog, put it into `blog/` folder and read the [CLAUDE.md](./blog/CLAUDE.md) first.
-
