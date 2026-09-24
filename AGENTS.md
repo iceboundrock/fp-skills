@@ -55,6 +55,30 @@ bash evals/functional-programming/build-prompts.sh none <out-dir>
 - Keep the boundaries between the parts listed under "What this repo is" explicit. For example, per-language idioms stay in `references/`, and rubrics stay in the eval scenarios, not in `SKILL.md`. Do not move content across them to save a file.
 - After modifying code, run the matching check from "Commands": `npx tsc --noEmit` for `src/`, and a prompt build for `build-prompts.sh`. There is no CI. Skill edits follow the eval workflow above.
 
-## Blog
 
-If you are writing/reviewing a tech blog, put it into `blog/` folder and read the [CLAUDE.md](./blog/CLAUDE.md) first.
+
+## Non-code artifacts
+
+Issues, PR descriptions, specs, plans, reviews, and every other non-code artifact(except blog posts) give readers the
+context and judgment the diff cannot, not a narrated diff or filler, and are published in full on
+GitHub. The full rules:
+
+@docs/non-code-rules.md
+
+### Blog
+
+If you are writing/reviewing a tech blog, put it into `blog/` folder, read the [Non-code rules](./docs/non-code-rules.md) and [CLAUDE.md](./blog/CLAUDE.md) first.
+
+## PR rules
+
+- Merge a PR only when I explicitly ask; squash-merge unless I say otherwise.
+- When reviewing a PR, post everything (findings, spec and standards checks, assessment, observations, verification, summary) as one comment on the PR.
+- After a PR is merged, clean up local branches and worktrees, fast-forward main, then update and close related issues.
+
+## Git conventions
+
+Never include AI attribution in commit messages, PR titles, or PR descriptions, in any form: no
+`Co-Authored-By: Claude`, `Generated with ...` footers, sign-offs naming an AI agent or vendor
+(Claude, Anthropic, GPT, OpenAI, …), or `Claude-Session:` trailers and session URLs — even when a
+tool inserts them automatically. When squash-merging, write a clean commit message that describes
+only the change itself.
