@@ -1,0 +1,141 @@
+# Language Adaptation
+
+Translate the intent, not the syntax. For each language this lists the native
+way to express closed alternatives, expected failures, absence, and lazy
+sequences, plus the traps agents fall into. When the project already has a
+convention (a result type, an FP library, a lint rule), follow the project.
+
+"Exhaustive" means the compiler or standard type checker reports a missing
+case. Where it is not exhaustive, add an explicit fallback arm that fails
+loudly, and do not claim the compiler will catch new cases.
+
+## TypeScript / JavaScript
+
+- Alternatives: discriminated union on a literal field (`kind`, `type`, `status`).
+  Exhaustive in TS through a `never` check in the `default` branch. Plain JS
+  has no check; document the shape (JSDoc) and throw in `default`.
+- Expected outcomes: a union return type such as `{ ok: true; value } | { ok: false; reason }`,
+  or `T | undefined` for absence. Exceptions stay for bugs and I/O failures.
+- Lazy: generators, async iterators, streams. Arrays are fine for bounded data.
+- Immutability: `readonly` and `as const` are compile-time only. `Object.freeze` is shallow.
+- Trap: `reduce` building objects with spread copies every step (quadratic).
+
+## Python
+
+- Alternatives: `@dataclass(frozen=True)` variants joined with `|`, or an `Enum`,
+  matched with `match` (3.10+) or `isinstance`. Exhaustiveness exists only
+  under a type checker, with `assert_never` (3.11+, or `typing_extensions`).
+- Expected outcomes: exceptions are idiomatic, including `KeyError`/`ValueError`
+  style lookups. Return `None` or a small union of dataclasses when callers
+  must branch on the outcome as part of normal flow.
+- Lazy: generators and `itertools`. A generator is single-pass: code that
+  iterates its input twice breaks when the input is a generator.
+- Trap: `functools.reduce` with tuple or dict accumulators. A `for` loop,
+  `sum`, `Counter`, or a comprehension is usually clearer.
+
+## Rust
+
+- Alternatives: `enum` with payloads, `match` is exhaustive.
+- Expected outcomes: `Result<T, E>` and `Option<T>` with `?`. `panic!` is for bugs.
+- Lazy: iterators are lazy and zero-cost. `let mut` locals are normal Rust.
+- Trap: cloning data to avoid `&mut` when a local mutable binding is clearer.
+
+## Go
+
+- Alternatives: no sum types. Use a `Kind` constant plus `switch`, or an
+  interface with an unexported marker method. Not exhaustive (the
+  `exhaustive` linter covers enum-like constants if the project uses it).
+- Expected outcomes: `(T, error)` with sentinel or typed errors and
+  `errors.Is`/`errors.As`. Do not build generic `Result`/`Option` types.
+- Lazy: slices by default. `iter.Seq` (Go 1.23+) for streaming. Channels carry
+  goroutine cost; they are not a lazy-list substitute.
+- Dependencies: small interfaces or function fields are idiomatic. Globals and
+  `init()` state are the hidden-dependency smell.
+- Trap: generic `Map`/`Filter`/`Reduce` helpers in place of plain loops.
+
+## Kotlin
+
+- Alternatives: `sealed interface`/`sealed class` with `data class`/`data object`,
+  `when` is exhaustive over sealed types and enums.
+- Expected outcomes: a domain-named sealed result, or nullable `T?` for absence.
+  The stdlib `Result`/`runCatching` catches every exception, including
+  coroutine `CancellationException`; do not use it for domain outcomes.
+- Lazy: `Sequence`; `Flow` for async streams.
+- Trap: adding Arrow to a project that does not already use it.
+
+## Scala
+
+- Alternatives: `sealed trait` or Scala 3 `enum`; the compiler warns on
+  non-exhaustive matches.
+- Expected outcomes: `Option`, `Either`, `Try` from the standard library.
+- Lazy: `Iterator`, `LazyList`, `.view`.
+- Trap: introducing cats/ZIO/tagless-final into a codebase that does not use them.
+
+## Swift
+
+- Alternatives: `enum` with associated values, `switch` is exhaustive.
+- Expected outcomes: `Optional`, `throws` (typed throws in Swift 6), or `Result`
+  for callback-style APIs.
+- Lazy: `.lazy` sequences, `AsyncSequence`.
+- Structs already have value semantics; `let` vs `var` is the main immutability tool.
+
+## Java
+
+- Alternatives: `sealed interface` + `record` (17+). `switch` pattern matching
+  over sealed types is exhaustive in Java 21+. On older versions use an enum or
+  a visitor-free `instanceof` chain with a throwing fallback.
+- Expected outcomes: a sealed result type named for the domain
+  (`RefundDecision.Approved | Rejected`). `Optional` is for return values, not
+  fields or parameters. Checked/unchecked exceptions stay for infrastructure.
+- Lazy: `Stream` is lazy and single-use.
+- Frameworks: Spring/Jakarta proxies apply `@Transactional`, `@Cacheable`, etc.
+  only on public methods called from outside the bean. Keep those annotations
+  on the entry point; extract pure logic into static methods or plain classes.
+- Trap: a hand-rolled `Either<L, R>` with `fold`, or Vavr, when a two-case
+  sealed interface says the same thing in domain terms.
+
+## C#
+
+- Alternatives: `record` types and `switch` expressions. The compiler does not
+  treat a class or record hierarchy as closed, so type-pattern switches are
+  never exhaustive (CS8509 without a discard arm). Enums are not closed either.
+  Add `_ => throw new UnreachableException()` (.NET 7+) and do not promote
+  CS8509 to an error expecting it to catch missing cases. When a missed case
+  must fail at compile time, give the outcome type one `Match` method with a
+  required delegate parameter per case.
+- Expected outcomes: exceptions are idiomatic. For business rejections that
+  callers must map (for example to HTTP codes), return a small record or
+  enum-based result. `T?` for absence.
+- Lazy: `IEnumerable<T>` with `yield` and LINQ are deferred; enumerating twice
+  re-runs the query. `IAsyncEnumerable<T>` for async streams.
+- Trap: adding LanguageExt/OneOf, or wrapping `DbUpdateException` in the result.
+
+## Haskell / OCaml
+
+- Purity and ADTs are native; the skill's value here is effect boundaries:
+  keep `IO` (or OCaml side effects) in a thin shell around pure functions.
+- Expected outcomes: `Maybe`/`Either` (Haskell), `option`/`result` (OCaml).
+  OCaml exceptions remain idiomatic for some library APIs.
+- Haskell laziness is the default: prefer strict folds (`foldl'`) for
+  accumulators to avoid space leaks.
+- Trap: introducing mtl stacks, free monads, or effect libraries the project
+  does not already use.
+
+## Clojure
+
+- Alternatives: maps with a `:type` key and `case` or multimethods. Contracts
+  via spec or malli when the project uses them.
+- Expected outcomes: `nil` for absence (nil punning), data maps for outcomes,
+  `ex-info` for exceptional failures.
+- Lazy: sequences are lazy and chunked; never put side effects inside `map`.
+  Use `doseq`/`run!` for effects, transducers for pipelines.
+- State: atoms/refs are the explicit, visible form of shared state.
+
+## Elixir
+
+- Alternatives: tagged tuples and structs, pattern matching in function heads.
+- Expected outcomes: `{:ok, value}` / `{:error, reason}` with `with`. Raise for
+  bugs ("let it crash" under a supervisor).
+- Lazy: `Stream`; `Enum` is eager.
+- State: processes (`GenServer`, `Agent`) are the stateful objects. Keep them;
+  move decision logic from callbacks into pure functions they call.
