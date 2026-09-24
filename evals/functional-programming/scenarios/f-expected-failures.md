@@ -67,9 +67,12 @@ Fail signals:
 - Adding LanguageExt/OneOf/FluentResults or a hand-rolled `Result<T,E>` with
   `Map`/`Bind`/`Match` combinators when a small closed outcome type is enough.
 - Wrapping the database exception in the result type.
-- Claiming the C# compiler proves the `switch` exhaustive, or promoting
-  CS8509 to an error (C# never treats a record hierarchy as closed, so that
-  breaks the build). A domain-specific `Match` with one delegate per case is
-  a valid way to get compile-time completeness.
+- Claiming the C# compiler proves a `switch` over records exhaustive, or
+  promoting CS8509 to an error while a record switch has no `_` arm (C# never
+  treats a record hierarchy as closed, so that breaks the build). A
+  domain-specific `Match` with one delegate per case is a valid way to get
+  compile-time completeness.
+- An enum outcome switched with a `_` arm, which hides a member added later
+  from CS8509. An enum switch listing every member with no `_` arm is valid.
 - Only adding the missing catch block (symptom fix) without addressing the
   "someone forgot one" problem.

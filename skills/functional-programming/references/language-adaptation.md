@@ -96,13 +96,23 @@ loudly, and do not claim the compiler will catch new cases.
 
 ## C#
 
-- Alternatives: `record` types and `switch` expressions. The compiler does not
-  treat a class or record hierarchy as closed, so type-pattern switches are
-  never exhaustive (CS8509 without a discard arm). Enums are not closed either.
-  Add `_ => throw new UnreachableException()` (.NET 7+) and do not promote
-  CS8509 to an error expecting it to catch missing cases. When a missed case
-  must fail at compile time, give the outcome type one `Match` method with a
-  required delegate parameter per case.
+- Alternatives: `record` types and `switch` expressions. What the compiler
+  checks depends on what you switch over:
+  - Record or class hierarchy: never treated as closed, so a type-pattern
+    switch gets CS8509 even when every case is listed. Add
+    `_ => throw new UnreachableException()` (.NET 7+). Promoting CS8509 cannot
+    catch a missing record case. When a missed case must fail at compile time,
+    give the outcome type one `Match` method with a required delegate
+    parameter per case.
+  - Enum: declared members are checked. List every member and leave out the
+    `_` arm, which would also hide a member added later. A missing member gets
+    CS8509 naming it; full coverage leaves only CS8524 for unnamed values such
+    as `(Outcome)42`. Suppress CS8524 (`<NoWarn>$(NoWarn);CS8524</NoWarn>`, or
+    `#pragma warning disable CS8524` around the switch) and such a value
+    throws `SwitchExpressionException` at run time. To make a missing member
+    fail the build, promote CS8509
+    (`<WarningsAsErrors>$(WarningsAsErrors);CS8509</WarningsAsErrors>`); this
+    also turns every record switch still lacking its `_` arm into an error.
 - Expected outcomes: exceptions are idiomatic. For business rejections that
   callers must map (for example to HTTP codes), return a small record or
   enum-based result. `T?` for absence.

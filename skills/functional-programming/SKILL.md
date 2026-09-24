@@ -103,7 +103,7 @@ functional" code: explain why instead of rewriting.
 | "Infrastructure errors should be results too, so nothing throws" | Only expected domain outcomes go in the return type. Database, network, and programming errors keep the normal channel. |
 | "Early returns are imperative; chain `Optional`/ternaries instead" | Early returns in a pure function read clearly. Use combinators only where they are shorter and easier to read. |
 | "Make the result read-only, or turn the entity into an immutable record" | Changing a public type or a framework-managed object (ORM entity, DI bean) is an API change. Do it only when shared mutation is the actual bug. |
-| "The compiler will flag missing cases" | Only where the language checks it: Rust, Kotlin, Swift, Scala, Java 21 sealed `switch`, TypeScript with a `never` check. C# never does for record or class hierarchies (CS8509 fires even when every case is listed). When a missed C# case must fail the build, give the outcome type a `Match` method with one delegate parameter per case. Go and Python without a type checker don't check either. |
+| "The compiler will flag missing cases" | Only where the language checks it: Rust, Kotlin, Swift, Scala, Java 21 sealed `switch`, TypeScript with a `never` check. C# checks enum members (CS8509 names a missing one unless a `_` arm hides it) but never record or class hierarchies (CS8509 fires even when every case is listed). When a missed C# record case must fail the build, give the outcome type a `Match` method with one delegate parameter per case. Go and Python without a type checker don't check either. |
 
 **Red flags.** Reconsider the change if it adds any of these:
 
