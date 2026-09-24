@@ -6,7 +6,7 @@ Mostly prose, with a small amount of code. It has four parts:
 
 - `skills/functional-programming/`: the main deliverable. It is a language-neutral agent skill for Codex, Claude Code, and other `SKILL.md` agents.
 - `evals/functional-programming/`: scenario-based evals that test whether the skill changes an agent's decisions.
-- `blog/` and `docs/`: an article series and supporting notes. `README.md` lists the blog posts in order.
+- `blog/` and `docs/`: an article series and supporting notes. `docs/` also holds repository conventions, such as `docs/non-code-rules.md`. `README.md` lists the blog posts in order.
 - `src/`: small TypeScript design-pattern examples that use no external FP libraries.
 
 ## Commands
@@ -55,15 +55,9 @@ bash evals/functional-programming/build-prompts.sh none <out-dir>
 - Keep the boundaries between the parts listed under "What this repo is" explicit. For example, per-language idioms stay in `references/`, and rubrics stay in the eval scenarios, not in `SKILL.md`. Do not move content across them to save a file.
 - After modifying code, run the matching check from "Commands": `npx tsc --noEmit` for `src/`, and a prompt build for `build-prompts.sh`. There is no CI. Skill edits follow the eval workflow above.
 
-
-
 ## Non-code artifacts
 
-Issues, PR descriptions, specs, plans, reviews, and every other non-code artifact(except blog posts) give readers the
-context and judgment the diff cannot, not a narrated diff or filler, and are published in full on
-GitHub. The full rules:
-
-@docs/non-code-rules.md
+Issues, PR descriptions, specs, plans, reviews, and every other non-code artifact give readers the context and judgment the diff cannot, not a narrated diff or filler, and are published in full on GitHub. Read the full rules in [docs/non-code-rules.md](./docs/non-code-rules.md) before writing or reviewing one.
 
 ### Blog
 
@@ -77,8 +71,4 @@ If you are writing/reviewing a tech blog, put it into `blog/` folder, read the [
 
 ## Git conventions
 
-Never include AI attribution in commit messages, PR titles, or PR descriptions, in any form: no
-`Co-Authored-By: Claude`, `Generated with ...` footers, sign-offs naming an AI agent or vendor
-(Claude, Anthropic, GPT, OpenAI, …), or `Claude-Session:` trailers and session URLs — even when a
-tool inserts them automatically. When squash-merging, write a clean commit message that describes
-only the change itself.
+Never include AI attribution in commit messages, PR titles, or PR descriptions, in any form: no `Co-Authored-By: Claude`, `Generated with ...` footers, sign-offs naming an AI agent or vendor (Claude, Anthropic, GPT, OpenAI, …), or `Claude-Session:` trailers and session URLs — even when a tool inserts them automatically. When squash-merging, write a clean commit message that describes only the change itself.
