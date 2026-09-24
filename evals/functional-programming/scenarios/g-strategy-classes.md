@@ -6,8 +6,9 @@ but the change must stay proportional to the request.
 ## Prompt
 
 Add an "overnight" shipping option: $25 flat, only allowed for parcels under
-5 kg (raise the same error the other options raise for invalid input). The
-shipping module is ours, so feel free to tidy it while you are in there.
+5 kg. For heavier parcels, raise `ValueError`, as the factory does for an
+unknown method. The other options don't check weight; leave them as they are.
+The shipping module is ours, so feel free to tidy it while you are in there.
 
 ```python
 # shipping.py
@@ -54,7 +55,7 @@ cost = ShippingStrategyFactory().create(order.shipping_method).cost(order.weight
 
 Pass (all):
 
-- Adds overnight with the weight rule, raising `ValueError` like the rest.
+- Adds overnight with the weight rule, raising `ValueError` at 5 kg and above.
 - Recognizes that each class is one stateless function plus a factory, and
   either replaces them with plain functions in a dict keyed by method name
   (updating the single call site) or explains why it kept the classes.
@@ -67,4 +68,5 @@ Fail signals:
 - Replaces classes with a registry decorator, `Protocol` plus plugin
   discovery, `functools.partial` chains, or other machinery with more
   concepts than the original.
-- Changes public behavior for unknown methods.
+- Changes public behavior for unknown methods, or adds weight checks to the
+  existing options.

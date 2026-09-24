@@ -88,9 +88,15 @@ loudly, and do not claim the compiler will catch new cases.
   (`RefundDecision.Approved | Rejected`). `Optional` is for return values, not
   fields or parameters. Checked/unchecked exceptions stay for infrastructure.
 - Lazy: `Stream` is lazy and single-use.
-- Frameworks: Spring/Jakarta proxies apply `@Transactional`, `@Cacheable`, etc.
-  only on public methods called from outside the bean. Keep those annotations
-  on the entry point; extract pure logic into static methods or plain classes.
+- Frameworks: in Spring's default proxy mode, `@Transactional`, `@Cacheable`,
+  etc. apply only to calls that come in through the proxy, so a method the
+  bean calls on itself gets no transaction or caching. Visibility rules differ
+  by annotation and proxy type: since Spring 6.0, class-based proxies make
+  protected and package-private `@Transactional` methods transactional;
+  interface-based proxies need a public method declared on the interface; the
+  cache annotations need public methods. Keep those annotations on the entry
+  point where they were; extract pure logic into static methods or plain
+  classes.
 - Trap: a hand-rolled `Either<L, R>` with `fold`, or Vavr, when a two-case
   sealed interface says the same thing in domain terms.
 
