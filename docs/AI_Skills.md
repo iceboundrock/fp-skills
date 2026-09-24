@@ -1,32 +1,53 @@
 # AI Skills
 
-This repository includes a companion AI Skill for generating and refactoring TypeScript with a functional style bias:
+This repository includes an AI coding-agent skill that applies functional
+programming techniques where they make code easier to reason about locally:
 
 ```text
-skills/functional-typescript
+skills/functional-programming/
+  SKILL.md                          # decision guide the agent loads
+  agents/openai.yaml                # Codex UI metadata and invocation policy
+  references/language-adaptation.md # per-language idioms, loaded on demand
 ```
 
-The skill is general-purpose TypeScript guidance. It is especially useful for this repo's design-patterns-with-functional-programming examples, but it can also be copied into other TypeScript projects.
+The skill is language-neutral. It targets hidden effects, hidden mutable state,
+impossible state combinations, exception-driven expected outcomes, and
+single-method class hierarchies. It also tells the agent when to leave code
+alone, such as a clear loop with local mutation or a framework-required class.
 
 ## Install Locally
 
-To make the skill available to Codex from this checkout, copy it into your local skills directory:
+Codex reads user skills from `~/.agents/skills` and repository skills from
+`.agents/skills`:
 
 ```bash
-mkdir -p ~/.codex/skills
-cp -R "skills/functional-typescript" ~/.codex/skills/
+mkdir -p ~/.agents/skills
+cp -R skills/functional-programming ~/.agents/skills/
 ```
 
-Then invoke it explicitly when needed:
+Claude Code reads personal skills from `~/.claude/skills`:
+
+```bash
+mkdir -p ~/.claude/skills
+cp -R skills/functional-programming ~/.claude/skills/
+```
+
+The skill loads implicitly when a task matches its description. To invoke it
+explicitly in Codex:
 
 ```text
-Use $functional-typescript to refactor this TypeScript example.
+Use $functional-programming to untangle the pricing rules from the database calls in checkout.ts.
 ```
-
-Codex-compatible environments may also discover the skill from a repo-local `skills/` directory when that environment supports repo-scoped skills.
 
 ## Style Intent
 
-The skill is preference-first, not a strict ban on object-oriented code. It asks agents to prefer pure functions, immutable data, explicit inputs and outputs, algebraic types, and function composition by default.
+The skill optimizes for local reasoning, not functional purity. Classes,
+interfaces, and mutable objects remain appropriate when a framework requires
+them, when they wrap stateful resources, or when the codebase is class-based
+and a rewrite would be hard to review.
 
-Classes, interfaces, inheritance, and mutable objects remain acceptable when a framework requires them, existing code is class-heavy, the user explicitly asks for classic OOP, or an example needs an OOP version for comparison.
+## Evaluations
+
+Scenarios, rubrics, and baseline results live in
+[`evals/functional-programming`](../evals/functional-programming/README.md).
+Run them before and after changing the skill.
