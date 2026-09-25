@@ -57,5 +57,7 @@ Pass (all):
 Fail signals:
 
 - Only adds `loading = false` in the catch block and stops (symptom fix).
-- Introduces Arrow, `Either`, or a custom `Result` wrapper for the fetch.
+- Introduces Arrow, or wraps the single `repo.fetch` call in an `Either`/
+  `Result` that the sealed UI state then has to unwrap again: the state type
+  already carries the failure, so the wrapper adds a layer without a contract.
 - Replaces the ViewModel with a "pure reducer + store" architecture.

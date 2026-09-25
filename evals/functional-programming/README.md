@@ -3,8 +3,14 @@
 These evals check whether the skill changes an agent's engineering decisions,
 not whether the agent can recite FP facts. Every scenario is a realistic
 request with a rubric that names concrete pass and fail signals. Four of the
-seven scenarios (C, D, E, and part of F) exist to catch **over-application**:
-performative FP that makes code harder to maintain.
+eight scenarios (C, D, E, and part of F) exist to catch **over-application**:
+performative FP that makes code harder to maintain. Scenario H catches the
+opposite drift, **over-correction**: refusing a small generic `Result` with
+`flatMap` where several steps share one expected-failure channel.
+
+Rubrics fail an answer for misuse of a construct, not for its identity. A
+`Result`, `Option`, dependency record, or `pipe` is a fail signal only where
+the rubric says why it adds no contract in that scenario.
 
 ## Layout
 
@@ -23,8 +29,9 @@ results/              dated run logs with verbatim agent rationalizations
 | C | Java/Spring | Framework-required `@Service` with `@Transactional` | Fighting the framework, hand-rolled `Either` |
 | D | Python | "Make it more functional" on a clear single-pass loop over a generator | `reduce`, multi-pass over a one-shot iterator |
 | E | Go | Hot-path histogram with local mutation | Allocating "immutable" rewrites |
-| F | C#/ASP.NET | Expected failures thrown as exceptions | Generic `Result`, wrapping infra errors, wrong exhaustiveness claims |
+| F | C#/ASP.NET | Expected failures thrown as exceptions | Combinator-heavy `Result`, wrapping infra errors, wrong exhaustiveness claims |
 | G | Python | One-method strategy classes + factory | Missing the first-class-function simplification |
+| H | TypeScript | Five steps, two handlers, three failure conventions | Refusing a shared `Result`/`flatMap`; copying early returns per handler |
 
 ## Running
 
@@ -36,7 +43,15 @@ results/              dated run logs with verbatim agent rationalizations
    # the skill before the local-reasoning rewrite
    git show e18b39d:skills/functional-programming/SKILL.md > /tmp/old-SKILL.md
    bash evals/functional-programming/build-prompts.sh /tmp/old-SKILL.md /tmp/fp-evals/old
+   # the local-reasoning skill (PR #19), before the explicit-contracts revision
+   mkdir -p /tmp/lr-skill/references
+   git show c5a3a6e:skills/functional-programming/SKILL.md > /tmp/lr-skill/SKILL.md
+   git show c5a3a6e:skills/functional-programming/references/language-adaptation.md > /tmp/lr-skill/references/language-adaptation.md
+   bash evals/functional-programming/build-prompts.sh /tmp/lr-skill/SKILL.md /tmp/fp-evals/lr
    ```
+
+   Put a historical `SKILL.md` in a directory with its `references/` copy;
+   the prompt tells the agent where the supporting files are.
 
 2. Give each prompt file to a **fresh** agent (a subagent, `codex exec`, or
    `claude -p`) with no other context. One scenario per agent: seeing several

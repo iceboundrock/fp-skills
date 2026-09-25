@@ -3,55 +3,141 @@ name: functional-programming
 description: Use when business logic is tangled with I/O, time, randomness, environment, or global state; when code is hard to unit test without mocks; when boolean or nullable fields allow impossible state combinations; when expected outcomes like not-found or validation failures are thrown and caught as control flow; when single-method classes, managers, or shared mutable objects obscure simple data transformations; or when asked to make code "more functional".
 ---
 
-# Functional Programming for Local Reasoning
+# Functional Programming: Make Implicit Contracts Explicit
 
-Use functional techniques when they let a reader understand behavior from what
-is in front of them: explicit inputs, a transformation, an output, and effects
-in places that are easy to find. The goal is local reasoning, not purity.
+Functional programming is useful when it moves knowledge out of convention
+and control flow and into values, types, function signatures, and
+composition. Use the smallest construct that makes the contract explicit;
+avoid functional ceremony that adds vocabulary without adding information.
 
-**Test every change:** does it reduce the number of concepts a maintainer must
-keep in their head? If not, don't make it, even when the user asked for "more
-functional" code.
-
-## Four Reflexes
-
-1. **Separate decisions from effects.** Decide what should happen in code that
-   takes plain values. Do I/O, time, randomness, logging, and persistence
-   around it.
-2. **Values over hidden shared state.** Avoid mutation that other code can
-   observe. Mutating a local variable the function itself created is fine.
-3. **Make alternatives, failures, and invariants explicit** in the data model
-   and return types.
-4. **Use the host language's simplest idiomatic form.** Translate intent, not
-   syntax. Before picking a union, result, or lazy-sequence construct, check
-   `references/language-adaptation.md` for that language.
+An implicit contract is anything a caller must know but cannot see in the
+API: a failure that arrives as an exception or `null`, a field that is only
+valid in some states, a function that reads the clock or writes to a
+database, a value that other code mutates, a rule that lives in a comment.
+For every change ask: **does this construct expose information the caller
+needed anyway, or does it only rename what was already visible?**
 
 ## Procedure
 
 1. Read the code, its callers, and project conventions: framework, error
-   model, dependency injection, existing result types or FP libraries.
-2. List where state changes and effects happen: database, network, files,
-   clock, randomness, env/config/globals, logging, input mutation, framework
-   callbacks.
-3. For each smell actually present, apply the matching move below. Skip the
-   rest.
-4. Run the stop checks. Remove whatever fails them.
+   model, dependency injection, existing result or option types, FP libraries.
+2. Find what is implicit: expected failures, absence, state combinations,
+   effects (database, network, files, clock, randomness, env/config/globals,
+   logging, input mutation, framework callbacks), order-dependent mutation.
+3. For each item, decide whether making it explicit improves the contract
+   for the callers that exist. Choose the smallest construct that expresses
+   it, preferring the language's and project's existing constructs
+   (`references/language-adaptation.md` lists them per language). Introduce
+   a small reusable abstraction when several functions share the pattern.
+4. Stop when the next construct would expose no additional meaning. This
+   holds when the user asks for "more functional" code: if the code already
+   states its contract, say so and leave it, or make one small idiomatic change.
 5. Preserve behavior: same effects in the same order, same public signatures
    unless the task needs a change and you update the callers. Verify with tests.
 
-## Smell → Move
+## Implicit → Explicit
 
-| You see | Move | Keep it small |
+| Implicit today | Make it explicit with | Stop here |
 |---|---|---|
-| A business rule reads the clock, config, env, randomness, or globals, or sits between I/O calls | Extract the rule into a function whose parameters are the plain values it needs (`now`, config fields, loaded records). The caller reads them and performs the effects. Make the function reachable from tests (package-private/internal is enough). | Pass values, not providers. Don't add `Clock`/`Config`/`Repository` interfaces or a deps record for this. |
-| A function mutates its arguments or a shared object; results depend on call order | Return new values, or give the state one owner that changes it in one place. | Local accumulators, builders, and loops are fine. |
-| Booleans/nullables valid only in certain combinations (`loading`, `error`, `data`) | One closed type with a case per real state: sealed/tagged union or enum with payload. Dynamic languages: one discriminator field and a documented shape. | Only states the domain has. |
-| Expected outcomes (not found, invalid input, rule rejected) thrown and caught as control flow, or easy for callers to forget | Return a closed, domain-named outcome (`Approved \| Rejected(reason)`) or the language's native channel (`Result`, `(T, error)`, optional). | Infrastructure failures (DB, network, timeouts, bugs) keep the normal failure channel. |
+| An expected failure (validation, not found in normal flow, authorization rejection, insufficient funds, rule rejection) thrown, or signalled by `null`/`false`/a magic value | A closed outcome in the return type: a domain-named union (`Approved \| Rejected(reason)`), or `Result<T, E>` with a domain error type as `E` | Use the native channel where one exists (`Result`, `(T, error)`, sealed types). Infrastructure failures keep the normal failure channel unless the caller handles them as ordinary control flow. |
+| Absence signalled by `null`, sentinels, or exceptions | `T?`, `T \| undefined`, `Optional`, `Option` | Native nullable when absence is checked once, locally. An option type when absence flows through several transformations or the project already has one. |
+| Several booleans/nullables valid only in certain combinations (`loading`, `error`, `data`) | One closed type with a case per real state: sealed/tagged union or enum with payload. Dynamic languages: one discriminator field and a documented shape. | Only states the domain has. |
+| A business rule that reads the clock, config, env, randomness, or globals, or sits between I/O calls | Extract the rule into a function over plain values (`now`, config fields, loaded records). The caller performs the effects. Make the function reachable from tests. | Pass a value when the rule needs one sample. Pass a function or a dependency record when the operation performs the effect itself and its signature should say so. |
+| A function mutates its arguments or shared state; results depend on call order | Return new values (`const paid = markPaid(submitted, paidAt)`), or give the state one owner that changes it in one place. | Local accumulators, builders, and loops are fine when the mutation is not the state transition the reader needs to see. |
 | Stateless single-method classes, strategies, or factories | Plain functions, plus a map from key to function when dispatch is needed. | Keep classes that hold state or resources, or that a framework needs. |
-| Coordinators passing a mutable context through steps | A sequence of named steps that take and return values. | Named intermediate variables, not point-free chains. |
+| Several steps share one success/failure or presence/absence shape, and callers repeat the unwrap-and-bail per step | `map`/`flatMap`/`match` on the shared type, so short-circuiting is stated once | Named intermediate variables over point-free chains. One call site with two or three steps: early returns are enough. |
 | Large or unbounded input materialized eagerly | Stream it with the language's iterator/sequence type. | Eager collections are fine for bounded data. Never iterate a one-shot iterator twice. |
 
-## Example: Pass Values, Not Providers
+## Choosing the Construct
+
+**Domain outcome vs generic `Result`.** Complementary tools, not competing
+rules. A domain-named outcome (`Approved | Rejected(reason)`) is right when
+the variants carry domain meaning and one caller switches on them. A generic
+`Result<T, E>` is right when several operations share the success/failure
+algebra and callers sequence them; the domain error type is `E`, so nothing
+is lost:
+
+```ts
+type Result<T, E> =
+  | { readonly ok: true; readonly value: T }
+  | { readonly ok: false; readonly error: E };
+
+type TransferError =
+  | { readonly kind: "account-not-found"; readonly id: string }
+  | { readonly kind: "account-frozen"; readonly id: string }
+  | { readonly kind: "insufficient-funds" };
+
+const validateTransfer = (input: TransferInput): Result<ValidatedTransfer, TransferError> => { /* ... */ };
+```
+
+A small generic type (`Result`, `Either`, `Option`) is legitimate when
+several functions share the shape, callers gain compile-time information,
+`map`/`flatMap`/`match` remove repeated control-flow boilerplate, its API
+stays small with clear semantics, or the project is teaching the construct.
+Writing the type plus `flatMap` yourself is not "adding an FP library"; it
+is a few lines that state the sequencing once. It becomes performative when
+introduced for a single call site, when the language already has an equally
+expressive idiom, when it hides domain distinctions behind a generic error,
+when its combinator API outgrows the problem, when it exists only to avoid
+`if`/`switch`/early return/local mutation, or when it turns failures that
+should stay exceptional into values for no semantic reason.
+
+**Expected vs infrastructure failures.** Expected domain outcomes belong in
+the return type: validation failure, not found when absence is normal,
+authorization rejection, insufficient funds, rule rejection. Infrastructure
+and unexpected failures (database unavailable, network timeout, disk
+failure, bugs, violated invariants) need not be forced into every `Result`.
+The line is semantic, not mechanical: a boundary may deliberately turn an
+infrastructure exception into a value, such as a UI loader returning
+`Loading | Loaded(value) | Failed(NetworkError)`, because its caller handles
+that failure as normal control flow. Convert the failures the caller is
+expected to handle, not every exception.
+
+**`T | undefined` vs `Option<T>`.** Native nullable types are the smallest
+form when absence is simple and local. An option type earns its place when
+absence flows through several transformations, when `map`/`flatMap`/`filter`
+read better than repeated null checks, when the project already uses one, or
+when the code is teaching composition. Reject an option abstraction only
+when it adds vocabulary without adding a contract.
+
+**Effects and dependencies.** Make effects and external dependencies visible
+at the boundary where they matter. `now: Date` is right when a decision needs
+one sampled time. `now: () => Date` or a `Clock` is right when the operation
+itself must sample time, possibly more than once, or when time is part of its
+effect contract. A dependency record such as
+
+```ts
+type RegistrationDeps = {
+  createId: () => string;
+  now: () => Date;
+  saveUser: (user: User) => Promise<void>;
+  emailExists: (email: string) => Promise<boolean>;
+};
+```
+
+is valid when its purpose is to make the operation's effect surface explicit
+in the signature. Flag it only when it exists to satisfy a purity aesthetic,
+or when it adds indirection without clarifying what the operation does. An
+interface with one implementation, added only so a test can mock it, is that
+kind of indirection.
+
+**Immutability.** Immutable values make state transitions explicit:
+`const paid = markPaid(submitted, paidAt)` states a transition that a run of
+field assignments hides. Default to immutable transformations for domain
+values. Use local mutation when it is simpler, contained, and not
+semantically relevant. Mutation is more suspicious when correctness depends
+on operation order or aliasing. The criterion is not purity; it is whether
+the state transition is visible.
+
+**Composition.** Judge `pipe`, `compose`, `map`, `flatMap`, `fold`, and
+`reduce` by whether they expose or obscure the transformation.
+`parse(input).flatMap(validate).flatMap(price).map(toResponse)` is good when
+each step shares the same `Result` and the chain makes short-circuiting
+explicit. `items.reduce(...)` is bad when a loop is clearer and `reduce` is
+there only to avoid a local accumulator. Semantic composition states data
+flow; stylistic composition only changes syntax.
+
+## Example: Decision Over Values, Shell Owns Effects
 
 ```kotlin
 sealed interface Renewal {
@@ -85,34 +171,43 @@ class RenewalJob(
 }
 ```
 
-The shape is the same in any language: a decision function over values, a
-domain-named outcome, and a thin shell that owns the effects.
+The decision takes `now` as a value because it samples time once. If the
+operation had to perform the effects itself, a function parameter or a
+dependency record would make that visible instead.
 
-## Stop Checks: Performative FP
-
-If a function already derives its output from explicit inputs and any mutation
-is local, it is functional where it matters. Say so and leave it, or make one
-small idiomatic change. This still holds when the user asks for "more
-functional" code: explain why instead of rewriting.
+## Stop Checks
 
 | Thought | Reality |
 |---|---|
-| "More functional means no mutation, so replace the loop with `reduce`" | Callers can't observe a local accumulator. A fold that copies its accumulator each step adds allocations and concepts. Keep the loop. |
-| "No FP library here, so I'll hand-roll a small `Either`/`Result`" | Name the outcomes for the domain and use the language's `switch`/`match`. A generic `Either` with `fold` adds vocabulary without meaning. |
-| "Inject a Clock/Store/Analytics record so effects are visible" | The shell calling effects directly is already visible. Give the decision `now` and the config values; its tests then need no fakes. Add an interface only for a second real implementation or when the codebase already has one. |
-| "Infrastructure errors should be results too, so nothing throws" | Only expected domain outcomes go in the return type. Database, network, and programming errors keep the normal channel. |
-| "Early returns are imperative; chain `Optional`/ternaries instead" | Early returns in a pure function read clearly. Use combinators only where they are shorter and easier to read. |
+| "More functional means no mutation, so replace the loop with `reduce`" | A local accumulator is not a state transition anyone reads. A fold that copies its accumulator each step adds allocations and concepts. Keep the loop. |
+| "Domain-named outcomes are always better than a generic `Result`" | Only when one caller switches on them. When several steps share the failure channel, `Result<T, DomainError>` with `flatMap` states the short-circuit once; the domain lives in `E`. |
+| "A `Result` type means either `if (!r.ok) return r` everywhere or a mini FP library" | A `flatMap` is a few lines. Steps that return a shared `Result` plus one `flatMap` state the sequencing once; exceptions state it nowhere and take the failure out of the signature. |
+| "Infrastructure errors should be results too, so nothing throws" | Convert the failures callers handle as normal flow. Database, network, and programming errors keep the normal channel unless a boundary deliberately presents them as a state. |
+| "Inject a Clock/Store/Analytics record so effects are visible" | If the decision needs one value, pass the value and let the shell keep the effect. Add a function parameter or dependency record when the operation performs the effect itself and the signature should say so. |
+| "Early returns are imperative; chain `Optional`/ternaries instead" | Early returns in a pure function state the contract. Use combinators only where they are shorter and easier to read. |
 | "Make the result read-only, or turn the entity into an immutable record" | Changing a public type or a framework-managed object (ORM entity, DI bean) is an API change. Do it only when shared mutation is the actual bug. |
 | "The compiler will flag missing cases" | Only where the language checks it: Rust, Kotlin, Swift, Scala, Java 21 sealed `switch`, TypeScript with a `never` check. C# checks enum members (CS8509 names a missing one unless a `_` arm hides it) but never record or class hierarchies (CS8509 fires even when every case is listed). When a missed C# record case must fail the build, give the outcome type a `Match` method with one delegate parameter per case. Go and Python without a type checker don't check either. |
 
-**Red flags.** Reconsider the change if it adds any of these:
+## Red Flags
 
-- A hand-rolled `pipe`, `compose`, `Either`, `Option`, `Result`, or `Unit`, or an FP library the project didn't have
-- An interface or function record with one implementation, added only for tests
-- `reduce`, `fold`, or recursion replacing a readable loop
-- One-use helpers the reader must jump between to follow simple logic
-- Public signature or type changes the task didn't require
-- Comments arguing that the code is "still functional"
+Reconsider the change if it does any of these:
+
+- Introduces a generic FP abstraction that is used once and conveys no
+  reusable contract.
+- Replaces clear control flow solely to avoid `if`, `switch`, early return,
+  a loop, or local mutation.
+- Adds combinators whose only purpose is to imitate an FP library.
+- Hides domain distinctions inside an overly generic error type.
+- Converts every infrastructure exception into an ordinary result value.
+- Adds dependencies or interfaces solely for tests when they do not clarify
+  the production contract.
+- Changes framework-managed entities or public APIs solely to make them look
+  more functional.
+- Uses `Result`, `Either`, or `Option` without being able to say what
+  semantic information the type exposes.
+
+`Result`, `Option`, `Either`, `pipe`, `compose`, `reduce`, and dependency
+records are not red flags in themselves. Their misuse is.
 
 ## Frameworks and OOP
 
@@ -126,12 +221,13 @@ the entry points where it was.
 
 ## Review Questions
 
+- Can the caller see absence, failure, effects, and alternatives from the API?
+- Does each construct make the contract easier to understand locally, or does
+  it only add vocabulary?
 - Can the business rules be tested without I/O, mocks, or the real clock?
-- Can a reader point to every place where state changes or effects happen?
 - Can the data model represent a state the domain can't be in?
-- Are expected outcomes visible in the API, with infrastructure failures still
-  in the normal channel?
-- Did I add an abstraction, helper, type, or dependency the codebase doesn't need?
-- Did I replace readable imperative code just to look functional?
+- Are expected outcomes in the return type, with infrastructure failures
+  handled where the caller expects them?
+- Where a generic abstraction was introduced, do several functions share it?
 - Does the result read like idiomatic code in this language and codebase?
 - Is the diff local and reviewable, with behavior and effect order unchanged?

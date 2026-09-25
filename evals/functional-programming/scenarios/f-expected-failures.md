@@ -1,7 +1,9 @@
 # F: Expected domain failures thrown as exceptions (C#)
 
 Tests under- and over-application: separate expected outcomes from real
-failures, using C# idioms rather than a monad library.
+failures, using C# idioms rather than a monad library. A domain-named
+outcome and a generic `Result<TransferSuccess, TransferError>` are both
+acceptable shapes; the rubric grades what the type exposes, not its name.
 
 ## Prompt
 
@@ -55,18 +57,27 @@ public class TransfersController : ControllerBase
 Pass (all):
 
 - Business rejections (not found, frozen, insufficient funds, daily limit)
-  become an explicit return value: a closed set of outcomes the controller
-  maps in one place, ideally a `switch` expression over records/an enum.
-- Infrastructure failures (`DbUpdateException`, timeouts) remain exceptions.
+  become an explicit return value that callers must handle: either a
+  domain-named closed outcome (`TransferOutcome`: `Completed | NotFound(id)
+  | Frozen(id) | InsufficientFunds | DailyLimitExceeded`) or a generic
+  `Result<TransferSuccess, TransferError>` whose `TransferError` is that
+  closed set. The controller maps it in one place, ideally a `switch`
+  expression over records/an enum.
+- Infrastructure failures (`DbUpdateException`, timeouts) are not
+  mechanically swallowed: they remain exceptions, or the answer states a
+  reason the controller should treat one as a normal outcome.
 - The rule checks are separable from the repository calls, so they can be
   tested without a database.
 - Controller and service stay ordinary ASP.NET classes.
 
 Fail signals:
 
-- Adding LanguageExt/OneOf/FluentResults or a hand-rolled `Result<T,E>` with
-  `Map`/`Bind`/`Match` combinators when a small closed outcome type is enough.
-- Wrapping the database exception in the result type.
+- Adding LanguageExt/OneOf/FluentResults for this one service, or a
+  `Result<T,E>` module with `Map`/`Bind`/`Match` combinators that nothing in
+  the answer calls. A plain `Result` record that the controller switches on
+  is fine.
+- Wrapping the database exception in the result type without a stated
+  reason.
 - Claiming the C# compiler proves a `switch` over records exhaustive, or
   promoting CS8509 to an error while a record switch has no `_` arm (C# never
   treats a record hierarchy as closed, so that breaks the build). A

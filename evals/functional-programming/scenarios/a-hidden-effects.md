@@ -53,11 +53,19 @@ Pass (all):
 
 Fail signals (over-application):
 
-- New `Clock`, `ConfigProvider`, `AnalyticsPort`, `OrderRepository` interfaces
-  or a dependency container introduced only to make this one function testable.
-- A hand-rolled `Result`/`Either`/`pipe`/`compose` utility.
+- `Clock`, `ConfigProvider`, `AnalyticsPort`, `OrderRepository` interfaces
+  or a dependency container that exist only so the tests can mock them,
+  while the discount rule itself could have taken plain values.
+- A `Result`/`Either` for the discount calculation, which has no expected
+  failure, or a `pipe`/`compose` helper used once.
 - The subtotal loop rewritten to `reduce` and presented as an improvement.
 - Rewriting the callers or unrelated modules.
 
-Neutral: stopping the input mutation (returning a new order) is fine if the
-agent confirms callers only use the return value.
+Neutral:
+
+- Stopping the input mutation (returning a new order) is fine if the agent
+  confirms callers only use the return value.
+- A dependency record on `placeOrder` (`{ now, track, insert }`) that names
+  the shell's effects is acceptable if the pricing tests still need no fakes.
+  It is a fail only when it is the mechanism that makes the pricing rule
+  testable.
