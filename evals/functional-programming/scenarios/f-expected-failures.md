@@ -76,6 +76,12 @@ Fail signals:
   `Result<T,E>` module with `Map`/`Bind`/`Match` combinators that nothing in
   the answer calls. A plain `Result` record that the controller switches on
   is fine.
+- A nullable rejection (`Task<TransferRejection?>`, `null` on success) or a
+  `TryTransfer(..., out rejection)` pair. Success is signalled by the absence
+  of a value, so the return type does not name the closed outcome set, and
+  the controller maps success in a null check and rejections in a separate
+  `Match`/`switch`. `Completed` as an empty record, or `Result<Unit, E>`, is
+  the right shape when success carries no data.
 - Wrapping the database exception in the result type without a stated
   reason.
 - Claiming the C# compiler proves a `switch` over records exhaustive, or

@@ -65,6 +65,11 @@ Neutral:
 
 - Stopping the input mutation (returning a new order) is fine if the agent
   confirms callers only use the return value.
+- Sampling `Date.now()` once and using it for both the happy-hour check and
+  `placedAt` is fine if the agent names it as a behavior change: the original
+  reads the clock twice, so `placedAt` can land in the hour after the one
+  that chose the discount. Collapsing the two reads silently is a fail; the
+  task did not ask for a behavior change.
 - A dependency record on `placeOrder` (`{ now, track, insert }`) that names
   the shell's effects is acceptable if the pricing tests still need no fakes.
   It is a fail only when it is the mechanism that makes the pricing rule
