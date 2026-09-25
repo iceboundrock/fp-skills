@@ -30,7 +30,7 @@ bash evals/functional-programming/build-prompts.sh none <out-dir>
 - The `description` in `SKILL.md`'s frontmatter decides when agents load the skill. `evals/functional-programming/routing.md` tests it, so rerun the routing check whenever you change the description.
 - `SKILL.md` stays language-neutral. Per-language idioms go in `references/language-adaptation.md`, which the agent loads on demand. Claims that appear in both files, such as which compilers check exhaustiveness, must agree.
 - `agents/openai.yaml` holds Codex UI metadata and the invocation policy.
-- The skill's thesis is local reasoning, not purity. Many of its rules exist to stop over-application, such as `reduce` replacing loops, hand-rolled `Either`, or interfaces added only for tests. Edits should not weaken these guards.
+- The skill's thesis is making implicit contracts explicit with the smallest functional construct, not purity and not minimal vocabulary. Its guards stop over-application (`reduce` replacing loops, a generic `Result` at one call site, interfaces added only for tests) and its scenario H stops over-correction (refusing a shared `Result` with `flatMap` where several steps share a failure channel). Edits should weaken neither.
 
 ## Changing the skill: eval workflow
 

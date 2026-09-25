@@ -49,4 +49,5 @@ Fail signals:
 - Materializes `events` into a list so it can make several passes. The
   output is correct, but a streamed log file is now held in memory for style.
 - `functools.reduce` with a tuple or dict accumulator.
-- Recursion, `lambda` chains, or a custom `pipe`/`compose` helper.
+- Recursion, `lambda` chains, or a custom `pipe`/`compose` helper wrapped
+  around what is one pass with two accumulators.

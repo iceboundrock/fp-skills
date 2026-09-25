@@ -14,11 +14,29 @@ loudly, and do not claim the compiler will catch new cases.
 - Alternatives: discriminated union on a literal field (`kind`, `type`, `status`).
   Exhaustive in TS through a `never` check in the `default` branch. Plain JS
   has no check; document the shape (JSDoc) and throw in `default`.
-- Expected outcomes: a union return type such as `{ ok: true; value } | { ok: false; reason }`,
-  or `T | undefined` for absence. Exceptions stay for bugs and I/O failures.
+- Expected outcomes, three legitimate forms; pick by what the caller does
+  with the result:
+  - `T | undefined` (or `T | null`): absence with no reason, checked once by
+    the caller. The smallest form for a lookup miss.
+  - A domain-named union such as
+    `{ kind: "approved"; value: ApprovalData } | { kind: "rejected"; reason: RejectionReason }`:
+    the variants carry domain meaning and one caller switches on them.
+  - A generic `Result<T, E> = { ok: true; value: T } | { ok: false; error: E }`,
+    with `E` a discriminated union of domain errors: several functions share
+    the success/failure shape and callers sequence them, so `flatMap`/
+    `andThen` states the short-circuit once. It is ordinary TypeScript, not
+    an FP-library import; keep the module to the type, `ok`/`err`
+    constructors, and the combinators the callers use.
+  Exceptions stay for bugs and I/O failures unless a boundary deliberately
+  turns them into a state (`RemoteData`: `loading | loaded | failed`).
+- Absence through several transformations: an `Option`-style type or
+  optional chaining (`?.`, `??`) both work. Use the one that reads better at
+  the call sites; do not add an `Option` for a single `if`.
 - Lazy: generators, async iterators, streams. Arrays are fine for bounded data.
 - Immutability: `readonly` and `as const` are compile-time only. `Object.freeze` is shallow.
 - Trap: `reduce` building objects with spread copies every step (quadratic).
+- Trap: a `Result` module that grows applicative helpers, `sequence`,
+  `traverse`, or `Unit` that no caller in the project uses.
 
 ## Python
 
@@ -46,7 +64,9 @@ loudly, and do not claim the compiler will catch new cases.
   interface with an unexported marker method. Not exhaustive (the
   `exhaustive` linter covers enum-like constants if the project uses it).
 - Expected outcomes: `(T, error)` with sentinel or typed errors and
-  `errors.Is`/`errors.As`. Do not build generic `Result`/`Option` types.
+  `errors.Is`/`errors.As` is the shared failure channel. A generic
+  `Result[T]`/`Option[T]` fights that idiom: every caller already handles
+  `error`, and generics give no `?`-style sequencing.
 - Lazy: slices by default. `iter.Seq` (Go 1.23+) for streaming. Channels carry
   goroutine cost; they are not a lazy-list substitute.
 - Dependencies: small interfaces or function fields are idiomatic. Globals and
@@ -58,8 +78,10 @@ loudly, and do not claim the compiler will catch new cases.
 - Alternatives: `sealed interface`/`sealed class` with `data class`/`data object`,
   `when` is exhaustive over sealed types and enums.
 - Expected outcomes: a domain-named sealed result, or nullable `T?` for absence.
-  The stdlib `Result`/`runCatching` catches every exception, including
-  coroutine `CancellationException`; do not use it for domain outcomes.
+  A project-level `sealed interface Outcome<out T, out E>` is fine when
+  several services share the shape and compose it. The stdlib
+  `Result`/`runCatching` catches every exception, including coroutine
+  `CancellationException`; do not use it for domain outcomes.
 - Lazy: `Sequence`; `Flow` for async streams.
 - Trap: adding Arrow to a project that does not already use it.
 
@@ -85,8 +107,11 @@ loudly, and do not claim the compiler will catch new cases.
   over sealed types is exhaustive in Java 21+. On older versions use an enum or
   a visitor-free `instanceof` chain with a throwing fallback.
 - Expected outcomes: a sealed result type named for the domain
-  (`RefundDecision.Approved | Rejected`). `Optional` is for return values, not
-  fields or parameters. Checked/unchecked exceptions stay for infrastructure.
+  (`RefundDecision.Approved | Rejected`) when one caller switches on it; a
+  shared `sealed interface Result<T, E>` with `Ok`/`Err` records when
+  several services return the same shape and callers chain them. `Optional`
+  is for return values, not fields or parameters. Checked/unchecked
+  exceptions stay for infrastructure.
 - Lazy: `Stream` is lazy and single-use.
 - Frameworks: in Spring's default proxy mode, `@Transactional`, `@Cacheable`,
   etc. apply only to calls that come in through the proxy, so a method the
@@ -97,8 +122,8 @@ loudly, and do not claim the compiler will catch new cases.
   cache annotations need public methods. Keep those annotations on the entry
   point where they were; extract pure logic into static methods or plain
   classes.
-- Trap: a hand-rolled `Either<L, R>` with `fold`, or Vavr, when a two-case
-  sealed interface says the same thing in domain terms.
+- Trap: an `Either<L, R>` with `fold`, or Vavr, introduced for one call
+  site where a two-case sealed interface says the same thing in domain terms.
 
 ## C#
 
@@ -121,10 +146,13 @@ loudly, and do not claim the compiler will catch new cases.
     also turns every record switch still lacking its `_` arm into an error.
 - Expected outcomes: exceptions are idiomatic. For business rejections that
   callers must map (for example to HTTP codes), return a small record or
-  enum-based result. `T?` for absence.
+  enum-based result; a shared `Result<T, TError>` record is fine when several
+  services return the same shape. `T?` for absence.
 - Lazy: `IEnumerable<T>` with `yield` and LINQ are deferred; enumerating twice
   re-runs the query. `IAsyncEnumerable<T>` for async streams.
-- Trap: adding LanguageExt/OneOf, or wrapping `DbUpdateException` in the result.
+- Trap: adding LanguageExt/OneOf for one service, a `Result` with
+  `Map`/`Bind`/`Match` that only one controller switches on, or wrapping
+  `DbUpdateException` in the result.
 
 ## Haskell / OCaml
 

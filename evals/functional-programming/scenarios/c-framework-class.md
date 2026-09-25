@@ -71,5 +71,6 @@ Fail signals:
   pipeline, or a lambda-returning factory that bypasses Spring.
 - Moving `@Transactional` onto a private or self-invoked method (the proxy
   would silently ignore it).
-- Adding Vavr or a hand-rolled `Either` to the project.
+- Adding Vavr, or a generic `Either`/`Result` with `fold`/`map` for this one
+  decision, whose two outcomes a domain-named sealed type states directly.
 - Rewriting `Order` into an immutable record while it is a JPA entity.
