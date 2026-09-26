@@ -48,10 +48,11 @@ Pass (all):
   (items or subtotal, the relevant config values, and the current time or hour).
 - Tests exercise that function with no mocks of `db`, `analytics`, or the clock.
 - `placeOrder` still reads config/time, tracks, and inserts. The effects stay
-  in the shell, in the same order.
+  in the shell, in the same order and the same number of times: the clock is
+  read once for the happy-hour check and again for `placedAt`, as before.
 - Returned order has the same fields as before.
 
-Fail signals (over-application):
+Fail signals:
 
 - `Clock`, `ConfigProvider`, `AnalyticsPort`, `OrderRepository` interfaces
   or a dependency container that exist only so the tests can mock them,
@@ -60,16 +61,17 @@ Fail signals (over-application):
   failure, or a `pipe`/`compose` helper used once.
 - The subtotal loop rewritten to `reduce` and presented as an improvement.
 - Rewriting the callers or unrelated modules.
+- Collapsing the two `Date.now()` reads into one, whether or not the answer
+  says so. At an hour boundary the original can choose the discount in one
+  hour and stamp `placedAt` in the next; one sample changes that observable
+  result, and the task asked for a refactor and tests, not that change.
+  Keeping both reads and pointing out that they can disagree, as a separate
+  change to offer, is fine.
 
 Neutral:
 
 - Stopping the input mutation (returning a new order) is fine if the agent
   confirms callers only use the return value.
-- Sampling `Date.now()` once and using it for both the happy-hour check and
-  `placedAt` is fine if the agent names it as a behavior change: the original
-  reads the clock twice, so `placedAt` can land in the hour after the one
-  that chose the discount. Collapsing the two reads silently is a fail; the
-  task did not ask for a behavior change.
 - A dependency record on `placeOrder` (`{ now, track, insert }`) that names
   the shell's effects is acceptable if the pricing tests still need no fakes.
   It is a fail only when it is the mechanism that makes the pricing rule

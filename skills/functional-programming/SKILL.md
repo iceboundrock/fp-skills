@@ -32,8 +32,11 @@ needed anyway, or does it only rename what was already visible?**
 4. Stop when the next construct would expose no additional meaning. This
    holds when the user asks for "more functional" code: if the code already
    states its contract, say so and leave it, or make one small idiomatic change.
-5. Preserve behavior: same effects in the same order, same public signatures
-   unless the task needs a change and you update the callers. Verify with tests.
+5. Preserve behavior: the same effects, run the same number of times in the
+   same order, and the same public signatures, unless the task needs a change
+   and you update the callers. A suspected bug you notice on the way is a
+   separate change: keep the behavior and name the bug in your summary.
+   Verify with tests.
 
 ## Implicit → Explicit
 
@@ -185,6 +188,7 @@ dependency record would make that visible instead.
 | "The success case carries no data, so return `Rejection?` and let `null` mean success" | `null` for success is `null` for failure read backwards: the type says "maybe a rejection" and the reader must know that nothing means the operation ran. Name the success case (`Completed \| Rejected(...)`, `Result<Unit, E>`) so the outcome set is closed and the caller maps every case in one place. |
 | "Infrastructure errors should be results too, so nothing throws" | Convert the failures callers handle as normal flow. Database, network, and programming errors keep the normal channel unless a boundary deliberately presents them as a state. |
 | "Inject a Clock/Store/Analytics record so effects are visible" | If the decision needs one value, pass the value and let the shell keep the effect. Add a function parameter or dependency record when the operation performs the effect itself and the signature should say so. |
+| "The code reads the clock twice (or has some other latent bug), so I'll fix that while I'm here" | A refactor for testability keeps behavior, including how many times each effect runs and which reading each value gets; a caller or a stored record may depend on it. Keep the reads the code had, name the suspected bug in your summary, and offer the fix as a separate change. |
 | "Early returns are imperative; chain `Optional`/ternaries instead" | Early returns in a pure function state the contract. Use combinators only where they are shorter and easier to read. |
 | "Make the result read-only, or turn the entity into an immutable record" | Changing a public type or a framework-managed object (ORM entity, DI bean) is an API change. Do it only when shared mutation is the actual bug. |
 | "The compiler will flag missing cases" | Only where the language checks it: Rust, Kotlin, Swift, Scala, Java 21 sealed `switch`, TypeScript with a `never` check. C# checks enum members (CS8509 names a missing one unless a `_` arm hides it) but never record or class hierarchies (CS8509 fires even when every case is listed). When a missed C# record case must fail the build, give the outcome type a `Match` method with one delegate parameter per case. Go and Python without a type checker don't check either. |
