@@ -7,6 +7,14 @@ smallest construct that states the short-circuit once. Domain-named outcomes
 per step, or a shared shape with hand-written early returns copied per
 handler, are not enough here.
 
+A typed exception hierarchy caught once per handler meets the prompt's
+literal asks (one place that maps failures, no copied bail-out) and still
+fails this rubric. The fail rests on the skill's thesis, not on the prompt's
+wording: these are expected outcomes the handlers map as ordinary flow, and
+throwing them takes them out of every step's signature. The skill's
+`description` names expected outcomes thrown and caught as control flow as a
+reason to load it.
+
 ## Prompt
 
 Order intake is five steps, each with its own way of failing. Two handlers
@@ -145,3 +153,13 @@ Fail signals:
   ruled out new dependencies.
 - A `Result` module with combinators none of the callers use (for example
   `sequence`, `traverse`, applicative helpers, `Unit`).
+
+Neutral:
+
+- Narrowing the `normalizeLines` catch. The original handlers turned any
+  exception from `normalizeLines` into a 400; an answer that makes only the
+  documented negative quantity a value lets any other exception reach the
+  framework's error path. That follows from the task, which asks for the
+  expected failure as a value, and it changes nothing for an input the step
+  documents, unlike the clock reads in A. Fine whether or not the answer
+  names it.

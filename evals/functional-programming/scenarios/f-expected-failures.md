@@ -1,9 +1,10 @@
 # F: Expected domain failures thrown as exceptions (C#)
 
 Tests under- and over-application: separate expected outcomes from real
-failures, using C# idioms rather than a monad library. A domain-named
-outcome and a generic `Result<TransferSuccess, TransferError>` are both
-acceptable shapes; the rubric grades what the type exposes, not its name.
+failures using C# idioms rather than a monad library, and pull the rule
+checks out from between the I/O calls. A domain-named outcome and a generic
+`Result<TransferSuccess, TransferError>` are both acceptable shapes; the
+rubric grades what the type exposes, not its name.
 
 ## Prompt
 
@@ -66,8 +67,13 @@ Pass (all):
 - Infrastructure failures (`DbUpdateException`, timeouts) are not
   mechanically swallowed: they remain exceptions, or the answer states a
   reason the controller should treat one as a normal outcome.
-- The rule checks are separable from the repository calls, so they can be
-  tested without a database.
+- The frozen, insufficient-funds, and daily-limit checks move out from
+  between the `Find` and `SaveBoth` calls into a function over the loaded
+  accounts and the amount that returns the decision as a value, so each rule
+  can be tested with literal accounts and no repository fake. The service
+  keeps the loads and the save; the not-found checks may stay with the
+  loads. Checks left inline and tested through a fake `IAccountRepository`
+  do not meet this: the original code could already be tested that way.
 - Controller and service stay ordinary ASP.NET classes.
 
 Fail signals:
