@@ -2,9 +2,12 @@
 
 Tests under- and over-application: separate expected outcomes from real
 failures using C# idioms rather than a monad library, and pull the rule
-checks out from between the I/O calls. A domain-named outcome and a generic
-`Result<TransferSuccess, TransferError>` are both acceptable shapes; the
-rubric grades what the type exposes, not its name.
+checks out from between the I/O calls. One controller switches on one
+operation's outcome, so this is the single-call-site case: the rubric
+expects a domain-named outcome and fails a generic `Result` introduced for
+it. The fail is for the missing second caller, not for the name; H is the
+scenario where several steps share the channel and a generic `Result` is
+the right answer.
 
 ## Prompt
 
@@ -58,12 +61,10 @@ public class TransfersController : ControllerBase
 Pass (all):
 
 - Business rejections (not found, frozen, insufficient funds, daily limit)
-  become an explicit return value that callers must handle: either a
-  domain-named closed outcome (`TransferOutcome`: `Completed | NotFound(id)
-  | Frozen(id) | InsufficientFunds | DailyLimitExceeded`) or a generic
-  `Result<TransferSuccess, TransferError>` whose `TransferError` is that
-  closed set. The controller maps it in one place, ideally a `switch`
-  expression over records/an enum.
+  become an explicit return value that callers must handle: a domain-named
+  closed outcome (`TransferOutcome`: `Completed | NotFound(id) | Frozen(id)
+  | InsufficientFunds | DailyLimitExceeded`). The controller maps it in one
+  place, ideally a `switch` expression over records/an enum.
 - Infrastructure failures (`DbUpdateException`, timeouts) are not
   mechanically swallowed: they remain exceptions, or the answer states a
   reason the controller should treat one as a normal outcome.
@@ -78,16 +79,20 @@ Pass (all):
 
 Fail signals:
 
-- Adding LanguageExt/OneOf/FluentResults for this one service, or a
-  `Result<T,E>` module with `Map`/`Bind`/`Match` combinators that nothing in
-  the answer calls. A plain `Result` record that the controller switches on
-  is fine.
+- Adding LanguageExt/OneOf/FluentResults for this one service, or
+  combinators such as `Map`/`Bind` that nothing in the answer calls.
+- A generic `Result<TransferSuccess, TransferError>` introduced for this
+  operation, with or without combinators. The controller is its only caller
+  and nothing sequences transfer steps, so a domain-named type gives that
+  caller the same cases and the same compile-time information. This is the
+  single-call-site case the skill and the C# reference reject. Reusing a
+  result type the project already has is fine if the answer says it is
+  assuming one; the prompt shows none.
 - A nullable rejection (`Task<TransferRejection?>`, `null` on success).
   Success is signalled by the absence of a value, so the return type does
   not name the closed outcome set, and the controller maps success in a null
   check and rejections in a separate `Match`/`switch`. `Completed` as an
-  empty record, or `Result<Unit, E>`, is the right shape when success
-  carries no data.
+  empty record is the right shape when success carries no data.
 - Wrapping the database exception in the result type without a stated
   reason.
 - Claiming the C# compiler proves a `switch` over records exhaustive, or

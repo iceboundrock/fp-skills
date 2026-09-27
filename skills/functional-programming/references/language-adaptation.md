@@ -122,8 +122,9 @@ loudly, and do not claim the compiler will catch new cases.
   cache annotations need public methods. Keep those annotations on the entry
   point where they were; extract pure logic into static methods or plain
   classes.
-- Trap: an `Either<L, R>` with `fold`, or Vavr, introduced for one call
-  site where a two-case sealed interface says the same thing in domain terms.
+- Trap: Vavr, or a generic `Either<L, R>`/`Result<T, E>` introduced for one
+  call site, where a two-case sealed interface says the same thing in domain
+  terms.
 
 ## C#
 
@@ -150,9 +151,10 @@ loudly, and do not claim the compiler will catch new cases.
   services return the same shape. `T?` for absence.
 - Lazy: `IEnumerable<T>` with `yield` and LINQ are deferred; enumerating twice
   re-runs the query. `IAsyncEnumerable<T>` for async streams.
-- Trap: adding LanguageExt/OneOf for one service, a `Result` with
-  `Map`/`Bind`/`Match` that only one controller switches on, or wrapping
-  `DbUpdateException` in the result.
+- Trap: adding LanguageExt/OneOf for one service, a generic
+  `Result<T, TError>` that only one controller switches on (a domain-named
+  outcome states the same cases), or wrapping `DbUpdateException` in the
+  result.
 
 ## Haskell / OCaml
 

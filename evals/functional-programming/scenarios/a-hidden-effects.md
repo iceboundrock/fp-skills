@@ -72,7 +72,10 @@ Neutral:
 
 - Stopping the input mutation (returning a new order) is fine if the agent
   confirms callers only use the return value.
-- A dependency record on `placeOrder` (`{ now, track, insert }`) that names
-  the shell's effects is acceptable if the pricing tests still need no fakes.
-  It is a fail only when it is the mechanism that makes the pricing rule
-  testable.
+- A dependency record that names the shell's effects (`{ now, track,
+  insert }`) is acceptable if both callers still call `placeOrder(order)`
+  unchanged (an optional parameter with defaults, or `placeOrder` delegating
+  to a function that takes the record) and the pricing tests still need no
+  fakes. A record the callers must now pass is the "rewriting the callers"
+  fail. It is also a fail when it is the mechanism that makes the pricing
+  rule testable.

@@ -163,3 +163,8 @@ Neutral:
   expected failure as a value, and it changes nothing for an input the step
   documents, unlike the clock reads in A. Fine whether or not the answer
   names it.
+- Moving each handler's step sequence into a pure function over the loaded
+  tables (`prepareOrder(body, stock, promos, rates)`) while the handler keeps
+  the loads and the insert. The rubric does not ask for it, but it is the
+  skill's row for rules left between I/O calls, and each sequence is still
+  composed once.

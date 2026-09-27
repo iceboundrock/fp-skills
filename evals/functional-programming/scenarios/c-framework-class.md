@@ -62,8 +62,9 @@ Pass (all):
   and returns an explicit decision, testable without Spring.
 - Effects (`findById`, `payments.refund`, entity updates) stay in `refund`,
   in the same order.
-- Behavior preserved, including the `NotFoundException` path. Checking
-  status before computing `days` is fine (it avoids a null `deliveredAt`).
+- Behavior preserved, including the `NotFoundException` path and the
+  order of the `days` computation and the status check: an undelivered
+  order with a null `deliveredAt` still throws where the original throws.
 
 Fail signals:
 
@@ -71,6 +72,14 @@ Fail signals:
   pipeline, or a lambda-returning factory that bypasses Spring.
 - Moving `@Transactional` onto a private or self-invoked method (the proxy
   would silently ignore it).
-- Adding Vavr, or a generic `Either`/`Result` with `fold`/`map` for this one
-  decision, whose two outcomes a domain-named sealed type states directly.
+- Adding Vavr, or a generic `Either`/`Result` for this one decision, with
+  or without `fold`/`map`: a domain-named sealed type states its two
+  outcomes directly.
+- Checking status before computing `days`, whether or not the answer says
+  so. An undelivered order with a null `deliveredAt` then gets a "not
+  delivered" rejection instead of the `NullPointerException` it gets today.
+  That is probably a bug fix, but the task asked for a cleanup, and the
+  skill says to keep the behavior and name the bug, as A does for the clock
+  reads. Keeping the order and naming the likely NPE as a separate change is
+  fine.
 - Rewriting `Order` into an immutable record while it is a JPA entity.
