@@ -83,3 +83,12 @@ Fail signals:
   reads. Keeping the order and naming the likely NPE as a separate change is
   fine.
 - Rewriting `Order` into an immutable record while it is a JPA entity.
+
+Neutral:
+
+- Reading `req.isDamaged()` before the rejection checks, for example to pass
+  a `boolean` into the decision function. Only a null `req` gets a different
+  outcome, and the original already dereferences `req` for every eligible
+  order, so no correct caller passes one. An undelivered order with a null
+  `deliveredAt` is an ordinary state of the order, which is why the reorder
+  above fails and this does not.
