@@ -20,9 +20,10 @@ loudly, and do not claim the compiler will catch new cases.
     the caller. The smallest form for a lookup miss.
   - A domain-named union such as
     `{ kind: "approved"; value: ApprovalData } | { kind: "rejected"; reason: RejectionReason }`:
-    the variants carry domain meaning and one caller switches on them.
+    the variants carry domain meaning and one operation returns them, however
+    many callers switch on it.
   - A generic `Result<T, E> = { ok: true; value: T } | { ok: false; error: E }`,
-    with `E` a discriminated union of domain errors: several functions share
+    with `E` a discriminated union of domain errors: several operations share
     the success/failure shape and callers sequence them, so `flatMap`/
     `andThen` states the short-circuit once. It is ordinary TypeScript, not
     an FP-library import; keep the module to the type, `ok`/`err`
@@ -64,9 +65,11 @@ loudly, and do not claim the compiler will catch new cases.
   interface with an unexported marker method. Not exhaustive (the
   `exhaustive` linter covers enum-like constants if the project uses it).
 - Expected outcomes: `(T, error)` with sentinel or typed errors and
-  `errors.Is`/`errors.As` is the shared failure channel. A generic
-  `Result[T]`/`Option[T]` fights that idiom: every caller already handles
-  `error`, and generics give no `?`-style sequencing.
+  `errors.Is`/`errors.As` is the shared failure channel, and it already puts
+  the failure in the signature. A generic `Result[T]`/`Option[T]` fights that
+  idiom: every library returns `(T, error)` and every caller already handles
+  it, so each library call needs a conversion and the type makes nothing
+  more explicit.
 - Lazy: slices by default. `iter.Seq` (Go 1.23+) for streaming. Channels carry
   goroutine cost; they are not a lazy-list substitute.
 - Dependencies: small interfaces or function fields are idiomatic. Globals and
@@ -79,7 +82,7 @@ loudly, and do not claim the compiler will catch new cases.
   `when` is exhaustive over sealed types and enums.
 - Expected outcomes: a domain-named sealed result, or nullable `T?` for absence.
   A project-level `sealed interface Outcome<out T, out E>` is fine when
-  several services share the shape and compose it. The stdlib
+  several services share the shape and callers sequence them. The stdlib
   `Result`/`runCatching` catches every exception, including coroutine
   `CancellationException`; do not use it for domain outcomes.
 - Lazy: `Sequence`; `Flow` for async streams.
@@ -107,11 +110,11 @@ loudly, and do not claim the compiler will catch new cases.
   over sealed types is exhaustive in Java 21+. On older versions use an enum or
   a visitor-free `instanceof` chain with a throwing fallback.
 - Expected outcomes: a sealed result type named for the domain
-  (`RefundDecision.Approved | Rejected`) when one caller switches on it; a
-  shared `sealed interface Result<T, E>` with `Ok`/`Err` records when
-  several services return the same shape and callers chain them. `Optional`
-  is for return values, not fields or parameters. Checked/unchecked
-  exceptions stay for infrastructure.
+  (`RefundDecision.Approved | Rejected`) when one operation returns it,
+  however many callers switch on it; a shared `sealed interface Result<T, E>`
+  with `Ok`/`Err` records when several services return the same shape and
+  callers sequence them. `Optional` is for return values, not fields or
+  parameters. Checked/unchecked exceptions stay for infrastructure.
 - Lazy: `Stream` is lazy and single-use.
 - Frameworks: in Spring's default proxy mode, `@Transactional`, `@Cacheable`,
   etc. apply only to calls that come in through the proxy, so a method the
@@ -123,7 +126,7 @@ loudly, and do not claim the compiler will catch new cases.
   point where they were; extract pure logic into static methods or plain
   classes.
 - Trap: Vavr, or a generic `Either<L, R>`/`Result<T, E>` introduced for one
-  call site, where a two-case sealed interface says the same thing in domain
+  operation, where a two-case sealed interface says the same thing in domain
   terms.
 
 ## C#
@@ -148,13 +151,13 @@ loudly, and do not claim the compiler will catch new cases.
 - Expected outcomes: exceptions are idiomatic. For business rejections that
   callers must map (for example to HTTP codes), return a small record or
   enum-based result; a shared `Result<T, TError>` record is fine when several
-  services return the same shape. `T?` for absence.
+  services return the same shape and callers sequence them. `T?` for absence.
 - Lazy: `IEnumerable<T>` with `yield` and LINQ are deferred; enumerating twice
   re-runs the query. `IAsyncEnumerable<T>` for async streams.
 - Trap: adding LanguageExt/OneOf for one service, a generic
-  `Result<T, TError>` that only one controller switches on (a domain-named
-  outcome states the same cases), or wrapping `DbUpdateException` in the
-  result.
+  `Result<T, TError>` for one service operation, however many controllers
+  switch on it (a domain-named outcome states the same cases), or wrapping
+  `DbUpdateException` in the result.
 
 ## Haskell / OCaml
 

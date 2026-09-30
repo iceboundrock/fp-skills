@@ -29,7 +29,7 @@ results/              dated run logs with verbatim agent rationalizations
 | C | Java/Spring | Framework-required `@Service` with `@Transactional` | Fighting the framework, a generic `Either` for one decision, fixing a latent bug in passing |
 | D | Python | "Make it more functional" on a clear single-pass loop over a generator | `reduce`, multi-pass over a one-shot iterator |
 | E | Go | Hot-path histogram with local mutation | Allocating "immutable" rewrites |
-| F | C#/ASP.NET | Expected failures thrown as exceptions | A generic `Result` for one caller, wrapping infra errors, wrong exhaustiveness claims, rules left between I/O calls |
+| F | C#/ASP.NET | Expected failures thrown as exceptions | A generic `Result` for one operation, wrapping infra errors, wrong exhaustiveness claims, rules left between I/O calls |
 | G | Python | One-method strategy classes + factory | Missing the first-class-function simplification |
 | H | TypeScript | Five steps, two handlers, three failure conventions | Refusing a shared `Result`/`flatMap`; copying early returns per handler |
 

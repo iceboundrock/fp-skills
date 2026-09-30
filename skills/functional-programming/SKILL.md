@@ -55,39 +55,48 @@ needed anyway, or does it only rename what was already visible?**
 
 **Domain outcome vs generic `Result`.** Complementary tools, not competing
 rules. A domain-named outcome (`Approved | Rejected(reason)`) is right when
-the variants carry domain meaning and one caller switches on them. A generic
-`Result<T, E>` is right when several operations share the success/failure
-algebra and callers sequence them; the domain error type is `E`, so nothing
-is lost:
+the variants carry domain meaning and one operation returns them, however
+many callers switch on it. A generic `Result<T, E>` is right when several
+operations share the success/failure algebra and callers sequence them; the
+domain error type is `E`, so nothing is lost:
 
 ```ts
 type Result<T, E> =
   | { readonly ok: true; readonly value: T }
   | { readonly ok: false; readonly error: E };
 
+const flatMap = <T, U, E>(r: Result<T, E>, f: (value: T) => Result<U, E>): Result<U, E> =>
+  r.ok ? f(r.value) : r;
+
 type TransferError =
+  | { readonly kind: "malformed"; readonly field: string }
   | { readonly kind: "account-not-found"; readonly id: string }
   | { readonly kind: "account-frozen"; readonly id: string }
   | { readonly kind: "insufficient-funds" };
 
+const parseTransfer = (body: unknown): Result<TransferInput, TransferError> => { /* ... */ };
 const validateTransfer = (input: TransferInput): Result<ValidatedTransfer, TransferError> => { /* ... */ };
+
+// Both steps share the failure channel, so the short-circuit is written once.
+const checkTransfer = (body: unknown): Result<ValidatedTransfer, TransferError> =>
+  flatMap(parseTransfer(body), validateTransfer);
 ```
 
 A small generic type (`Result`, `Either`, `Option`) is legitimate when
-several functions share the shape; keep its API small with clear semantics.
-Sharing is what earns it: each caller gains compile-time information, and
+several operations share the shape and callers sequence them; keep its API
+small with clear semantics. Sharing across operations is what earns it:
 `map`/`flatMap`/`match` replace control-flow boilerplate the callers would
-otherwise repeat. A domain-named type gives a single call site the same
-compile-time information, so that alone is not a reason. Writing the type
-plus `flatMap` yourself is not "adding an FP library"; it is a few lines
-that state the sequencing once. It becomes performative when introduced for
-a single call site, when the language already has an equally expressive
-idiom, when it hides domain distinctions behind a generic error, when its
-combinator API outgrows the problem, when it exists only to avoid
-`if`/`switch`/early return/local mutation, or when it turns failures that
-should stay exceptional into values for no semantic reason. The one
-exception to the single-call-site rule is a project that is teaching the
-construct.
+otherwise repeat at every step. The number of callers is not a reason: a
+domain-named type gives every caller of one operation the same compile-time
+information. Writing the type plus `flatMap` yourself is not "adding an FP
+library"; it is a few lines that state the sequencing once. It becomes
+performative when introduced for a single operation, when the language
+already has an equally expressive idiom, when it hides domain distinctions
+behind a generic error, when its combinator API outgrows the problem, when
+it exists only to avoid `if`/`switch`/early return/local mutation, or when
+it turns failures that should stay exceptional into values for no semantic
+reason. The one exception to the single-operation rule is a project that is
+teaching the construct.
 
 **Expected vs infrastructure failures.** Expected domain outcomes belong in
 the return type: validation failure, not found when absence is normal,
@@ -187,7 +196,7 @@ dependency record would make that visible instead.
 | Thought | Reality |
 |---|---|
 | "More functional means no mutation, so replace the loop with `reduce`" | A local accumulator is not a state transition anyone reads. A fold that copies its accumulator each step adds allocations and concepts. Keep the loop. |
-| "Domain-named outcomes are always better than a generic `Result`" | Only when one caller switches on them. When several steps share the failure channel, `Result<T, DomainError>` with `flatMap` states the short-circuit once; the domain lives in `E`. |
+| "Domain-named outcomes are always better than a generic `Result`" | Only for one operation's outcome, however many callers switch on it. When several operations share the failure channel and callers sequence them, `Result<T, DomainError>` with `flatMap` states the short-circuit once; the domain lives in `E`. |
 | "A `Result` type means either `if (!r.ok) return r` everywhere or a mini FP library" | A `flatMap` is a few lines. Steps that return a shared `Result` plus one `flatMap` state the sequencing once; exceptions state it nowhere and take the failure out of the signature. |
 | "The success case carries no data, so return `Rejection?` and let `null` mean success" | `null` for success is `null` for failure read backwards: the type says "maybe a rejection" and the reader must know that nothing means the operation ran. Name the success case (`Completed \| Rejected(...)`, `Result<Unit, E>`) so the outcome set is closed and the caller maps every case in one place. |
 | "Infrastructure errors should be results too, so nothing throws" | Convert the failures callers handle as normal flow. Database, network, and programming errors keep the normal channel unless a boundary deliberately presents them as a state. |
@@ -238,6 +247,7 @@ the entry points where it was.
 - Can the data model represent a state the domain can't be in?
 - Are expected outcomes in the return type, with infrastructure failures
   handled where the caller expects them?
-- Where a generic abstraction was introduced, do several functions share it?
+- Where a generic abstraction was introduced, do several operations share it,
+  and do callers sequence them?
 - Does the result read like idiomatic code in this language and codebase?
 - Is the diff local and reviewable, with behavior and effect order unchanged?

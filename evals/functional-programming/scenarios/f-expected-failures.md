@@ -2,12 +2,13 @@
 
 Tests under- and over-application: separate expected outcomes from real
 failures using C# idioms rather than a monad library, and pull the rule
-checks out from between the I/O calls. One controller switches on one
-operation's outcome, so this is the single-call-site case: the rubric
-expects a domain-named outcome and fails a generic `Result` introduced for
-it. The fail is for the missing second caller, not for the name; H is the
-scenario where several steps share the channel and a generic `Result` is
-the right answer.
+checks out from between the I/O calls. One operation returns the outcome
+and nothing sequences it with other steps, so this is the single-operation
+case: the rubric expects a domain-named outcome and fails a generic
+`Result` introduced for it. The fail is for the missing sharing across
+operations, not for the name, and a second caller of `Transfer` would not
+change it; H is the scenario where several steps share the channel, callers
+sequence them, and a generic `Result` is the right answer.
 
 ## Prompt
 
@@ -82,12 +83,14 @@ Fail signals:
 - Adding LanguageExt/OneOf/FluentResults for this one service, or
   combinators such as `Map`/`Bind` that nothing in the answer calls.
 - A generic `Result<TransferSuccess, TransferError>` introduced for this
-  operation, with or without combinators. The controller is its only caller
-  and nothing sequences transfer steps, so a domain-named type gives that
-  caller the same cases and the same compile-time information. This is the
-  single-call-site case the skill and the C# reference reject. Reusing a
-  result type the project already has is fine if the answer says it is
-  assuming one; the prompt shows none.
+  operation, with or without combinators. `Transfer` is the only operation
+  that returns it and nothing sequences it with other steps, so a
+  domain-named type gives the controller the same cases and the same
+  compile-time information. This is the single-operation case the skill and
+  the C# reference reject. Reusing a result type the project already has is
+  fine if the answer references it without defining it and says it is
+  assuming one; the prompt shows none. An answer that defines
+  `Result<T, E>` is introducing it, whatever it assumes.
 - A nullable rejection (`Task<TransferRejection?>`, `null` on success).
   Success is signalled by the absence of a value, so the return type does
   not name the closed outcome set, and the controller maps success in a null
