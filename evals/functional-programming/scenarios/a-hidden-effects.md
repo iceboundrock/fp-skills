@@ -48,16 +48,42 @@ Pass (all):
   (items or subtotal, the relevant config values, and the current time or hour).
 - Tests exercise that function with no mocks of `db`, `analytics`, or the clock.
 - `placeOrder` still reads config/time, tracks, and inserts. The effects stay
-  in the shell, in the same order.
+  in the shell, in the same order and the same number of times: the clock is
+  read once for the happy-hour check and again for `placedAt`, as before.
 - Returned order has the same fields as before.
 
-Fail signals (over-application):
+Fail signals:
 
-- New `Clock`, `ConfigProvider`, `AnalyticsPort`, `OrderRepository` interfaces
-  or a dependency container introduced only to make this one function testable.
-- A hand-rolled `Result`/`Either`/`pipe`/`compose` utility.
+- `Clock`, `ConfigProvider`, `AnalyticsPort`, `OrderRepository` interfaces
+  or a dependency container that exist only so the tests can mock them,
+  while the discount rule itself could have taken plain values.
+- A `Result`/`Either` for the discount calculation, which has no expected
+  failure, or a `pipe`/`compose` helper used once.
 - The subtotal loop rewritten to `reduce` and presented as an improvement.
 - Rewriting the callers or unrelated modules.
+- Collapsing the two `Date.now()` reads into one, whether or not the answer
+  says so. At an hour boundary the original can choose the discount in one
+  hour and stamp `placedAt` in the next; one sample changes that observable
+  result, and the task asked for a refactor and tests, not that change.
+  Keeping both reads and pointing out that they can disagree, as a separate
+  change to offer, is fine.
 
-Neutral: stopping the input mutation (returning a new order) is fine if the
-agent confirms callers only use the return value.
+Neutral:
+
+- Stopping the input mutation (returning a new order) is fine if the agent
+  confirms callers only use the return value.
+- A dependency record that names the shell's effects (`{ now, track,
+  insert }`) is acceptable if both callers still call `placeOrder(order)`
+  unchanged (an optional parameter with defaults, or `placeOrder` delegating
+  to a function that takes the record) and the pricing tests still need no
+  fakes. A record the callers must now pass is the "rewriting the callers"
+  fail. It is also a fail when it is the mechanism that makes the pricing
+  rule testable.
+- Reading the clock before the subtotal is added up, as a shell does when it
+  passes the items and `Date.now()` to the pricing function. The first read
+  still decides the hour and the second still stamps `placedAt`, so a stubbed
+  or frozen clock gets the same order back from both versions. Only real
+  time passing during the loop tells them apart, and that also changes the
+  original's discount between a slow run and a fast one. The order that
+  counts is that of the two reads, the track, and the insert. Requiring the
+  read after the loop would fail the items form of the first pass criterion.

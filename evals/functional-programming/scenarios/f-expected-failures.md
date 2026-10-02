@@ -1,7 +1,14 @@
 # F: Expected domain failures thrown as exceptions (C#)
 
 Tests under- and over-application: separate expected outcomes from real
-failures, using C# idioms rather than a monad library.
+failures using C# idioms rather than a monad library, and pull the rule
+checks out from between the I/O calls. One operation returns the outcome
+and nothing sequences it with other steps, so this is the single-operation
+case: the rubric expects a domain-named outcome and fails a generic
+`Result` introduced for it. The fail is for the missing sharing across
+operations, not for the name, and a second caller of `Transfer` would not
+change it; H is the scenario where several steps share the channel, callers
+sequence them, and a generic `Result` is the right answer.
 
 ## Prompt
 
@@ -55,18 +62,42 @@ public class TransfersController : ControllerBase
 Pass (all):
 
 - Business rejections (not found, frozen, insufficient funds, daily limit)
-  become an explicit return value: a closed set of outcomes the controller
-  maps in one place, ideally a `switch` expression over records/an enum.
-- Infrastructure failures (`DbUpdateException`, timeouts) remain exceptions.
-- The rule checks are separable from the repository calls, so they can be
-  tested without a database.
+  become an explicit return value that callers must handle: a domain-named
+  closed outcome (`TransferOutcome`: `Completed | NotFound(id) | Frozen(id)
+  | InsufficientFunds | DailyLimitExceeded`). The controller maps it in one
+  place, ideally a `switch` expression over records/an enum.
+- Infrastructure failures (`DbUpdateException`, timeouts) are not
+  mechanically swallowed: they remain exceptions, or the answer states a
+  reason the controller should treat one as a normal outcome.
+- The frozen, insufficient-funds, and daily-limit checks move out from
+  between the `Find` and `SaveBoth` calls into a function over the loaded
+  accounts and the amount that returns the decision as a value, so each rule
+  can be tested with literal accounts and no repository fake. The service
+  keeps the loads and the save; the not-found checks may stay with the
+  loads. Checks left inline and tested through a fake `IAccountRepository`
+  do not meet this: the original code could already be tested that way.
 - Controller and service stay ordinary ASP.NET classes.
 
 Fail signals:
 
-- Adding LanguageExt/OneOf/FluentResults or a hand-rolled `Result<T,E>` with
-  `Map`/`Bind`/`Match` combinators when a small closed outcome type is enough.
-- Wrapping the database exception in the result type.
+- Adding LanguageExt/OneOf/FluentResults for this one service, or
+  combinators such as `Map`/`Bind` that nothing in the answer calls.
+- A generic `Result<TransferSuccess, TransferError>` introduced for this
+  operation, with or without combinators. `Transfer` is the only operation
+  that returns it and nothing sequences it with other steps, so a
+  domain-named type gives the controller the same cases and the same
+  compile-time information. This is the single-operation case the skill and
+  the C# reference reject. Reusing a result type the project already has is
+  fine if the answer references it without defining it and says it is
+  assuming one; the prompt shows none. An answer that defines
+  `Result<T, E>` is introducing it, whatever it assumes.
+- A nullable rejection (`Task<TransferRejection?>`, `null` on success).
+  Success is signalled by the absence of a value, so the return type does
+  not name the closed outcome set, and the controller maps success in a null
+  check and rejections in a separate `Match`/`switch`. `Completed` as an
+  empty record is the right shape when success carries no data.
+- Wrapping the database exception in the result type without a stated
+  reason.
 - Claiming the C# compiler proves a `switch` over records exhaustive, or
   promoting CS8509 to an error while a record switch has no `_` arm (C# never
   treats a record hierarchy as closed, so that breaks the build). A
