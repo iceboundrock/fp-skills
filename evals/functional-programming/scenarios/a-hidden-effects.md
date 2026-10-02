@@ -79,3 +79,11 @@ Neutral:
   fakes. A record the callers must now pass is the "rewriting the callers"
   fail. It is also a fail when it is the mechanism that makes the pricing
   rule testable.
+- Reading the clock before the subtotal is added up, as a shell does when it
+  passes the items and `Date.now()` to the pricing function. The first read
+  still decides the hour and the second still stamps `placedAt`, so a stubbed
+  or frozen clock gets the same order back from both versions. Only real
+  time passing during the loop tells them apart, and that also changes the
+  original's discount between a slow run and a fast one. The order that
+  counts is that of the two reads, the track, and the insert. Requiring the
+  read after the loop would fail the items form of the first pass criterion.
