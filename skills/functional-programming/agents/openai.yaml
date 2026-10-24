@@ -1,7 +1,7 @@
 interface:
   display_name: "Functional Programming"
-  short_description: "Separate effects, model states, avoid performative FP"
-  default_prompt: "Use $functional-programming to make this code easier to reason about locally, without over-engineering it."
+  short_description: "Make implicit contracts explicit with the smallest FP construct"
+  default_prompt: "Use $functional-programming to make this code's failures, absence, states, and effects explicit, without adding FP ceremony."
 
 policy:
   allow_implicit_invocation: true

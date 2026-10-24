@@ -1,7 +1,9 @@
 # AI Skills
 
 This repository includes an AI coding-agent skill that applies functional
-programming techniques where they make code easier to reason about locally:
+programming techniques where they make implicit contracts explicit (failures,
+absence, states, and effects that a caller must know about but cannot see in
+the API):
 
 ```text
 skills/functional-programming/
@@ -41,10 +43,13 @@ Use $functional-programming to untangle the pricing rules from the database call
 
 ## Style Intent
 
-The skill optimizes for local reasoning, not functional purity. Classes,
-interfaces, and mutable objects remain appropriate when a framework requires
-them, when they wrap stateful resources, or when the codebase is class-based
-and a rewrite would be hard to review.
+The skill optimizes for explicit contracts, not functional purity and not the
+fewest concepts. It picks the smallest construct that states the contract,
+which can be a plain loop, a domain-named outcome, or a shared `Result` with
+`flatMap` when several steps share one failure channel. Classes, interfaces,
+and mutable objects remain appropriate when a framework requires them, when
+they wrap stateful resources, or when the codebase is class-based and a
+rewrite would be hard to review.
 
 ## Evaluations
 
