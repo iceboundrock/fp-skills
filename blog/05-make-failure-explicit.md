@@ -96,7 +96,7 @@ async function bookClass(memberId: string, classId: string): Promise<BookingOutc
 
 `book` is an instruction, and `booked` is a fact. The insert can still fail after the decision says `book`, so code that sends a confirmation on `book` could confirm a seat nobody saved.
 
-The HTTP handler maps the four outcomes to 201, 202, 403, and 404, and the console maps them to its own messages. A second caller is no reason to make the type generic: `BookingOutcome` already tells both callers every case. Give each mapping a declared return type or post 04's `assertNever` default, and the compiler flags one that misses a case.
+The HTTP handler maps the four outcomes to 201, 202, 403, and 404, and the console maps them to its own messages. A second caller is no reason to make the type generic: `BookingOutcome` already tells both callers every case. Give each mapping post 04's `assertNever` default, and the compiler flags one that misses a case. A declared return type such as `number` does the same, but only with `strictNullChecks` (part of `strict`) or `noImplicitReturns` on.
 
 The effects keep their order: read the member, read the class, check for absence, read the clock once, decide, then write at most once. The checks keep their order too, so an expired member asking for a full class still gets 403, not a waitlist place.
 
