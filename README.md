@@ -10,6 +10,7 @@ The goal is not to replace object-oriented programming. The goal is to add a sma
 2. [Pure Functions and Immutability](blog/02-pure-functions-and-immutability.md)
 3. [Types as AI Guardrails: Narrow the Surface an AI Can Get Wrong](blog/03-types-as-ai-guardrails.md)
 4. [Why `{ data, loading, error }` Lies — And Algebraic Data Types Fix Your Vibe Coding](blog/04-algebraic-data-types.md)
+5. [`undefined`, a Union, or `Result`? How to Make Failure Explicit in TypeScript](blog/05-make-failure-explicit.md)
 
 ## AI Coding-Agent Skill
 
