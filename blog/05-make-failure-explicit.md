@@ -252,7 +252,7 @@ One convention per kind of failure leaves the AI one pattern to copy, not four. 
 - `andThen` over independent guards becomes a row of closures. Use it when each step's output feeds the next.
 - An existing project convention wins. If your codebase uses a `Result` library, or throws everywhere and maps at one boundary, follow it.
 
-These rules are this series' guidance and match this repository's AI skill. TypeScript prescribes none of them.
+The `andThen` chain is what Scott Wlaschin calls [Railway Oriented Programming](https://fsharpforfunandprofit.com/rop/). His [Against Railway-Oriented Programming](https://fsharpforfunandprofit.com/posts/against-railway-oriented-programming/) lists when not to use `Result` in F#, including "Be careful when using Result for I/O errors." The rules in this post are this series' guidance and match this repository's AI skill. TypeScript prescribes none of them.
 
 They also refine post 01's rule 1, "Return `Result<T, E>` for expected failures." The failure still belongs in the return type, but its form depends on who owns it. One operation's outcomes get a domain-named union. A channel that several operations share, and callers sequence, gets `Result<T, E>`. Post 01's `validate` → `registerUser` is that shared case: two steps, one early return.
 
