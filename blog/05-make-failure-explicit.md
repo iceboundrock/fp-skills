@@ -258,8 +258,6 @@ They also refine post 01's rule 1, "Return `Result<T, E>` for expected failures.
 
 ## Takeaways: Five Decision Rules
 
-![Decision tree routing a failure signal to T | undefined, a domain-named union, a shared Result, or an exception](image-placeholder)
-
 1. Absence checked once, locally: `T | undefined`.
 2. One operation with meaningful outcomes: a domain-named union, however many callers.
 3. Several operations that share an expected-failure channel, sequenced by callers: `Result<T, DomainError>`.
