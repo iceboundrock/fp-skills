@@ -225,7 +225,9 @@ const decideBooking = (member: Member, session: ClassSession, now: Date): Bookin
 
 `Result` is the channel the checks share, not what `bookClass`'s callers see. The order is now membership, plan, credits, then capacity, and the first rejection wins. A member on the unlimited plan passes the plan check and pays nothing, so their bookings behave as before.
 
-The `book` branch of `bookClass` now inserts the booking and debits `charge.credits` in one transaction, and the job's promotion write does the same. The pure function can't make that atomic. It can't stop two concurrent bookings from spending the same last credit either. When `charge.credits` is 1, the debit must be conditional on a positive balance. What the shell does when that condition fails, such as rerunning the decision or answering 409, is a separate design question.
+The `book` branch of `bookClass` now inserts the booking and debits `charge.credits` in one transaction, and the job's promotion write does the same. The pure function can't make that atomic. A debit conditional on a positive balance stops two bookings from spending the same last credit, but it misses a plan change. A member who switches from unlimited to a class pack after the load still gets `credits: 0`, and a zero debit checks nothing.
+
+Both writes must protect every input their decision read: membership, plan, credits, and capacity. Lock the member and class rows when the transaction reads them, or make the write conditional on both rows' versions. What the shell does when a version check fails, such as rerunning the decision or answering 409, is a separate design question.
 
 ### Infrastructure Failures Stay Exceptions
 
